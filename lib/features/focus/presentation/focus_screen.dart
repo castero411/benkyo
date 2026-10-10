@@ -1,6 +1,7 @@
 import 'package:benkyo/app/theme/tokens.dart';
 import 'package:benkyo/core/widgets/glass_panel.dart';
 import 'package:benkyo/features/focus/presentation/focus_ui.dart';
+import 'package:benkyo/features/tasks/presentation/tasks_panel.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -69,11 +70,7 @@ class FocusScreen extends ConsumerWidget {
             bottom: Tokens.s16,
             left: ui.tasksOpen ? Tokens.s16 : -400,
             width: 370,
-            child: _Panel(
-              title: 'Tasks',
-              empty: 'No tasks yet',
-              onClose: notifier.toggleTasks,
-            ),
+            child: TasksPanel(onClose: notifier.toggleTasks),
           ),
           AnimatedPositioned(
             duration: slide,

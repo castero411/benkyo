@@ -1,6 +1,7 @@
 import 'package:benkyo/app/theme/tokens.dart';
 import 'package:benkyo/features/focus/presentation/focus_screen.dart';
 import 'package:benkyo/features/focus/presentation/focus_ui.dart';
+import 'package:benkyo/features/tasks/presentation/tasks_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -47,7 +48,10 @@ class BenkyoApp extends ConsumerWidget {
                 LogicalKeyboardKey.keyN,
                 meta: true,
               ),
-              onSelected: ui.openTasks,
+              onSelected: () {
+                ui.openTasks();
+                ref.read(quickAddFocusProvider).requestFocus();
+              },
             ),
           ],
         ),
@@ -99,7 +103,15 @@ class BenkyoApp extends ConsumerWidget {
   }
 
   KeyEventResult _onKey(KeyEvent event, FocusUi ui) {
-    if (event is! KeyDownEvent || _isTyping) return KeyEventResult.ignored;
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (_isTyping) {
+      // Esc leaves the text field; every other key belongs to it.
+      if (event.logicalKey != LogicalKeyboardKey.escape) {
+        return KeyEventResult.ignored;
+      }
+      FocusManager.instance.primaryFocus?.unfocus();
+      return KeyEventResult.handled;
+    }
     if (HardwareKeyboard.instance.isMetaPressed) return KeyEventResult.ignored;
     switch (event.logicalKey) {
       case LogicalKeyboardKey.keyF:

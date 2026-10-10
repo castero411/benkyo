@@ -43,6 +43,12 @@ class MainFlutterWindow: NSWindow {
       channel.invokeMethod("didExitFullScreen", arguments: nil)
     }
 
+    let messenger = flutterViewController.engine.binaryMessenger
+    RemindersApiSetup.setUp(
+      binaryMessenger: messenger, api: RemindersBridge(binaryMessenger: messenger))
+    MenuApiSetup.setUp(
+      binaryMessenger: messenger, api: MenuBridge(view: flutterViewController.view))
+
     RegisterGeneratedPlugins(registry: flutterViewController)
 
     super.awakeFromNib()

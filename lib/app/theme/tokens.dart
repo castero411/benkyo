@@ -81,6 +81,19 @@ ThemeData buildTheme() {
         letterSpacing: 0.6,
       ),
     ),
+    snackBarTheme: SnackBarThemeData(
+      behavior: SnackBarBehavior.floating,
+      width: 420,
+      backgroundColor: Tokens.toast,
+      contentTextStyle: const TextStyle(
+        color: Tokens.inkOnAccent,
+        fontSize: 14,
+      ),
+      actionTextColor: Tokens.inkOnAccent,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(Tokens.r14),
+      ),
+    ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
         minimumSize: const Size(0, 44),

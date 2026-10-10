@@ -28,5 +28,7 @@
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>NSRemindersFullAccessUsageDescription</key>
+	<string>Benkyo keeps your tasks in a Reminders list so they also appear on your iPhone and Apple Watch.</string>
 </dict>
 </plist>
