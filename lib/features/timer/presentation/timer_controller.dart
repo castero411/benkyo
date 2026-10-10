@@ -6,10 +6,45 @@ import 'package:benkyo/features/timer/domain/pomodoro.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-// ponytail: fixed defaults; a Settings screen overrides this provider later.
-final Provider<TimerSettings> timerSettingsProvider = Provider(
-  (_) => const TimerSettings(),
-);
+final timerSettingsProvider =
+    NotifierProvider<TimerSettingsController, TimerSettings>(
+      TimerSettingsController.new,
+    );
+
+/// Timer lengths from Settings, stored in the prefs table.
+class TimerSettingsController extends Notifier<TimerSettings> {
+  @override
+  TimerSettings build() {
+    unawaited(_load());
+    return const TimerSettings();
+  }
+
+  Future<void> _load() async {
+    final p = await ref.read(appDatabaseProvider).prefsWithPrefix('timer.');
+    Duration? mins(String key) {
+      final v = int.tryParse(p[key] ?? '');
+      return v == null ? null : Duration(minutes: v);
+    }
+
+    state = state.copyWith(
+      focus: mins('timer.focus'),
+      shortBreak: mins('timer.short'),
+      longBreak: mins('timer.long'),
+      sessionsBeforeLongBreak: int.tryParse(p['timer.cycle'] ?? ''),
+      autoStartNext: p['timer.auto'] == null ? null : p['timer.auto'] == 'true',
+    );
+  }
+
+  Future<void> update(TimerSettings s) async {
+    state = s;
+    final db = ref.read(appDatabaseProvider);
+    await db.setPref('timer.focus', '${s.focus.inMinutes}');
+    await db.setPref('timer.short', '${s.shortBreak.inMinutes}');
+    await db.setPref('timer.long', '${s.longBreak.inMinutes}');
+    await db.setPref('timer.cycle', '${s.sessionsBeforeLongBreak}');
+    await db.setPref('timer.auto', '${s.autoStartNext}');
+  }
+}
 
 /// Injectable wall clock, so tests can jump time (e.g. across a sleep).
 final Provider<DateTime Function()> clockProvider = Provider(
@@ -35,7 +70,14 @@ class TimerController extends Notifier<PomodoroState> {
 
   @override
   PomodoroState build() {
-    ref.onDispose(() => _ticker?.cancel());
+    ref
+      ..onDispose(() => _ticker?.cancel())
+      // New lengths apply right away to a phase that hasn't started.
+      ..listen(timerSettingsProvider, (_, next) {
+        if (!state.running && state.startedAt == null) {
+          state = state.reset(next);
+        }
+      });
     return PomodoroState.initial(_settings);
   }
 

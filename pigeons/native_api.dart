@@ -164,3 +164,61 @@ abstract class SpotifyEvents {
   /// Playback changed, Spotify launched or quit.
   void changed(SpotifyState state);
 }
+
+/// One event from Apple Calendar.
+class CalendarEventDto {
+  CalendarEventDto({
+    required this.id,
+    required this.title,
+    required this.startMillis,
+    required this.endMillis,
+    required this.allDay,
+    required this.calendarTitle,
+    required this.colorHex,
+    this.taskId,
+  });
+
+  String id;
+  String title;
+  int startMillis;
+  int endMillis;
+  bool allDay;
+  String calendarTitle;
+
+  /// The calendar's color, "#RRGGBB".
+  String colorHex;
+
+  /// Set when Benkyo created it from a task (event URL `benkyo://task/<id>`).
+  String? taskId;
+}
+
+/// Apple Calendar via EventKit (includes iCloud, Google, Exchange accounts
+/// added to macOS).
+@HostApi()
+abstract class CalendarApi {
+  AccessStatus status();
+
+  @async
+  bool requestAccess();
+
+  @async
+  List<CalendarEventDto> events(int fromMillis, int toMillis);
+
+  /// Adds to the default calendar. Returns the event id.
+  String createEvent(
+    String title,
+    int startMillis,
+    int endMillis,
+    String? taskId,
+  );
+
+  void deleteEvent(String id);
+
+  void openPrivacySettings();
+}
+
+@FlutterApi()
+abstract class CalendarEvents {
+  /// Calendar changed anywhere (this app, Calendar.app, sync).
+  void changed();
+}

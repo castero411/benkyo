@@ -22,6 +22,7 @@
 
 /* Begin PBXBuildFile section */
 		1B1C5B0027C4727BE591A03F /* SceneryBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3519D897C96716CD960E5B03 /* SceneryBridge.swift */; };
+		288FFBE1C85A5C22AE4B662A /* CalendarBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90E2D80BFE25A7B4691B239A /* CalendarBridge.swift */; };
 		331C80D8294CF71000263BE5 /* RunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 331C80D7294CF71000263BE5 /* RunnerTests.swift */; };
 		335BBD1B22A9A15E00E9071D /* GeneratedPluginRegistrant.swift in Sources */ = {isa = PBXBuildFile; fileRef = 335BBD1A22A9A15E00E9071D /* GeneratedPluginRegistrant.swift */; };
 		33CC10F12044A3C60003C045 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC10F02044A3C60003C045 /* AppDelegate.swift */; };
@@ -90,6 +91,7 @@
 		78E0A7A72DC9AD7400C4905E /* FlutterGeneratedPluginSwiftPackage */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = FlutterGeneratedPluginSwiftPackage; path = ephemeral/Packages/FlutterGeneratedPluginSwiftPackage; sourceTree = "<group>"; };
 		7AFA3C8E1D35360C0083082E /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
 		83CD7EED152D0B890D4F76F9 /* SpotifyBridge.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SpotifyBridge.swift; sourceTree = "<group>"; };
+		90E2D80BFE25A7B4691B239A /* CalendarBridge.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CalendarBridge.swift; sourceTree = "<group>"; };
 		9740EEB21CF90195004384FC /* Debug.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
 		A0A4214C4DB1ACC94B3A1D1C /* MenuBridge.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MenuBridge.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -190,6 +192,7 @@
 				5C874FD16D3A2CDA1C6E83E4 /* NotificationsBridge.swift */,
 				3519D897C96716CD960E5B03 /* SceneryBridge.swift */,
 				83CD7EED152D0B890D4F76F9 /* SpotifyBridge.swift */,
+				90E2D80BFE25A7B4691B239A /* CalendarBridge.swift */,
 			);
 			path = Runner;
 			sourceTree = "<group>";
@@ -381,6 +384,7 @@
 				EE4B045B08D7593EA6245521 /* NotificationsBridge.swift in Sources */,
 				1B1C5B0027C4727BE591A03F /* SceneryBridge.swift in Sources */,
 				C9AEA42A46D04DC15E446994 /* SpotifyBridge.swift in Sources */,
+				288FFBE1C85A5C22AE4B662A /* CalendarBridge.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

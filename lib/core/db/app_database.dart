@@ -45,13 +45,22 @@ class Prefs extends Table {
   Set<Column> get primaryKey => {key};
 }
 
-@DriftDatabase(tables: [LocalTasks, Sessions, UserScenes, Prefs])
+/// Markdown notes. The first line is the title, as in Apple Notes.
+class Notes extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get body => text()();
+  TextColumn get taskId => text().nullable()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+}
+
+@DriftDatabase(tables: [LocalTasks, Sessions, UserScenes, Prefs, Notes])
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])
     : super(executor ?? driftDatabase(name: 'benkyo'));
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -61,6 +70,7 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(userScenes);
         await m.createTable(prefs);
       }
+      if (from < 4) await m.createTable(notes);
     },
   );
 }

@@ -350,6 +350,97 @@ class SpotifyState {
   }
 }
 
+/// One event from Apple Calendar.
+class CalendarEventDto {
+  CalendarEventDto({
+    required this.id,
+    required this.title,
+    required this.startMillis,
+    required this.endMillis,
+    required this.allDay,
+    required this.calendarTitle,
+    required this.colorHex,
+    this.taskId,
+  });
+
+  String id;
+
+  String title;
+
+  int startMillis;
+
+  int endMillis;
+
+  bool allDay;
+
+  String calendarTitle;
+
+  /// The calendar's color, "#RRGGBB".
+  String colorHex;
+
+  /// Set when Benkyo created it from a task (event URL `benkyo://task/<id>`).
+  String? taskId;
+
+  List<Object?> _toList() {
+    return <Object?>[
+      id,
+      title,
+      startMillis,
+      endMillis,
+      allDay,
+      calendarTitle,
+      colorHex,
+      taskId,
+    ];
+  }
+
+  Object encode() {
+    return _toList();
+  }
+
+  static CalendarEventDto decode(Object result) {
+    result as List<Object?>;
+    return CalendarEventDto(
+      id: result[0]! as String,
+      title: result[1]! as String,
+      startMillis: result[2]! as int,
+      endMillis: result[3]! as int,
+      allDay: result[4]! as bool,
+      calendarTitle: result[5]! as String,
+      colorHex: result[6]! as String,
+      taskId: result[7] as String?,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! CalendarEventDto || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(id, other.id) &&
+        _deepEquals(title, other.title) &&
+        _deepEquals(startMillis, other.startMillis) &&
+        _deepEquals(endMillis, other.endMillis) &&
+        _deepEquals(allDay, other.allDay) &&
+        _deepEquals(calendarTitle, other.calendarTitle) &&
+        _deepEquals(colorHex, other.colorHex) &&
+        _deepEquals(taskId, other.taskId);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'CalendarEventDto(id: $id, title: $title, startMillis: $startMillis, endMillis: $endMillis, allDay: $allDay, calendarTitle: $calendarTitle, colorHex: $colorHex, taskId: $taskId)';
+  }
+}
+
 class _PigeonCodec extends StandardMessageCodec {
   const _PigeonCodec();
   @override
@@ -372,6 +463,9 @@ class _PigeonCodec extends StandardMessageCodec {
     } else if (value is SpotifyState) {
       buffer.putUint8(133);
       writeValue(buffer, value.encode());
+    } else if (value is CalendarEventDto) {
+      buffer.putUint8(134);
+      writeValue(buffer, value.encode());
     } else {
       super.writeValue(buffer, value);
     }
@@ -392,6 +486,8 @@ class _PigeonCodec extends StandardMessageCodec {
         return NativeMenuItem.decode(readValue(buffer)!);
       case 133:
         return SpotifyState.decode(readValue(buffer)!);
+      case 134:
+        return CalendarEventDto.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
     }
@@ -958,6 +1054,190 @@ abstract class SpotifyEvents {
           final SpotifyState arg_state = args[0]! as SpotifyState;
           try {
             api.changed(arg_state);
+            return wrapResponse(empty: true);
+          } on PlatformException catch (e) {
+            return wrapResponse(error: e);
+          } catch (e) {
+            return wrapResponse(
+              error: PlatformException(code: 'error', message: e.toString()),
+            );
+          }
+        });
+      }
+    }
+  }
+}
+
+/// Apple Calendar via EventKit (includes iCloud, Google, Exchange accounts
+/// added to macOS).
+class CalendarApi {
+  /// Constructor for [CalendarApi]. The [binaryMessenger] named argument is
+  /// available for dependency injection. If it is left null, the default
+  /// BinaryMessenger will be used which routes to the host platform.
+  CalendarApi({
+    BinaryMessenger? binaryMessenger,
+    String messageChannelSuffix = '',
+  }) : pigeonVar_binaryMessenger = binaryMessenger,
+       pigeonVar_messageChannelSuffix = messageChannelSuffix.isNotEmpty
+           ? '.$messageChannelSuffix'
+           : '';
+
+  final BinaryMessenger? pigeonVar_binaryMessenger;
+  static const MessageCodec<Object?> pigeonChannelCodec = _PigeonCodec();
+
+  final String pigeonVar_messageChannelSuffix;
+
+  Future<AccessStatus> status() async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.benkyo.CalendarApi.status$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
+    return pigeonVar_replyValue! as AccessStatus;
+  }
+
+  Future<bool> requestAccess() async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.benkyo.CalendarApi.requestAccess$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
+    return pigeonVar_replyValue! as bool;
+  }
+
+  Future<List<CalendarEventDto>> events(int fromMillis, int toMillis) async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.benkyo.CalendarApi.events$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[fromMillis, toMillis],
+    );
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
+    return (pigeonVar_replyValue! as List<Object?>).cast<CalendarEventDto>();
+  }
+
+  /// Adds to the default calendar. Returns the event id.
+  Future<String> createEvent(
+    String title,
+    int startMillis,
+    int endMillis,
+    String? taskId,
+  ) async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.benkyo.CalendarApi.createEvent$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[title, startMillis, endMillis, taskId],
+    );
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
+    return pigeonVar_replyValue! as String;
+  }
+
+  Future<void> deleteEvent(String id) async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.benkyo.CalendarApi.deleteEvent$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[id],
+    );
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: true,
+    );
+  }
+
+  Future<void> openPrivacySettings() async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.benkyo.CalendarApi.openPrivacySettings$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: true,
+    );
+  }
+}
+
+abstract class CalendarEvents {
+  static const MessageCodec<Object?> pigeonChannelCodec = _PigeonCodec();
+
+  /// Calendar changed anywhere (this app, Calendar.app, sync).
+  void changed();
+
+  static void setUp(
+    CalendarEvents? api, {
+    BinaryMessenger? binaryMessenger,
+    String messageChannelSuffix = '',
+  }) {
+    messageChannelSuffix = messageChannelSuffix.isNotEmpty
+        ? '.$messageChannelSuffix'
+        : '';
+    {
+      final pigeonVar_channel = BasicMessageChannel<Object?>(
+        'dev.flutter.pigeon.benkyo.CalendarEvents.changed$messageChannelSuffix',
+        pigeonChannelCodec,
+        binaryMessenger: binaryMessenger,
+      );
+      if (api == null) {
+        pigeonVar_channel.setMessageHandler(null);
+      } else {
+        pigeonVar_channel.setMessageHandler((Object? message) async {
+          try {
+            api.changed();
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);

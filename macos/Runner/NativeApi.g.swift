@@ -398,6 +398,80 @@ struct SpotifyState: Hashable, CustomStringConvertible {
   }
 }
 
+/// One event from Apple Calendar.
+///
+/// Generated class from Pigeon that represents data sent in messages.
+struct CalendarEventDto: Hashable, CustomStringConvertible {
+  var id: String
+  var title: String
+  var startMillis: Int64
+  var endMillis: Int64
+  var allDay: Bool
+  var calendarTitle: String
+  /// The calendar's color, "#RRGGBB".
+  var colorHex: String
+  /// Set when Benkyo created it from a task (event URL `benkyo://task/<id>`).
+  var taskId: String? = nil
+
+
+  // swift-format-ignore: AlwaysUseLowerCamelCase
+  static func fromList(_ pigeonVar_list: [Any?]) -> CalendarEventDto? {
+    let id = pigeonVar_list[0] as! String
+    let title = pigeonVar_list[1] as! String
+    let startMillis = pigeonVar_list[2] as! Int64
+    let endMillis = pigeonVar_list[3] as! Int64
+    let allDay = pigeonVar_list[4] as! Bool
+    let calendarTitle = pigeonVar_list[5] as! String
+    let colorHex = pigeonVar_list[6] as! String
+    let taskId: String? = nilOrValue(pigeonVar_list[7])
+
+    return CalendarEventDto(
+      id: id,
+      title: title,
+      startMillis: startMillis,
+      endMillis: endMillis,
+      allDay: allDay,
+      calendarTitle: calendarTitle,
+      colorHex: colorHex,
+      taskId: taskId
+    )
+  }
+  func toList() -> [Any?] {
+    return [
+      id,
+      title,
+      startMillis,
+      endMillis,
+      allDay,
+      calendarTitle,
+      colorHex,
+      taskId,
+    ]
+  }
+  static func == (lhs: CalendarEventDto, rhs: CalendarEventDto) -> Bool {
+    if Swift.type(of: lhs) != Swift.type(of: rhs) {
+      return false
+    }
+    return NativeApiPigeonInternal.deepEquals(lhs.id, rhs.id) && NativeApiPigeonInternal.deepEquals(lhs.title, rhs.title) && NativeApiPigeonInternal.deepEquals(lhs.startMillis, rhs.startMillis) && NativeApiPigeonInternal.deepEquals(lhs.endMillis, rhs.endMillis) && NativeApiPigeonInternal.deepEquals(lhs.allDay, rhs.allDay) && NativeApiPigeonInternal.deepEquals(lhs.calendarTitle, rhs.calendarTitle) && NativeApiPigeonInternal.deepEquals(lhs.colorHex, rhs.colorHex) && NativeApiPigeonInternal.deepEquals(lhs.taskId, rhs.taskId)
+  }
+
+  func hash(into hasher: inout Hasher) {
+    hasher.combine("CalendarEventDto")
+    NativeApiPigeonInternal.deepHash(value: id, hasher: &hasher)
+    NativeApiPigeonInternal.deepHash(value: title, hasher: &hasher)
+    NativeApiPigeonInternal.deepHash(value: startMillis, hasher: &hasher)
+    NativeApiPigeonInternal.deepHash(value: endMillis, hasher: &hasher)
+    NativeApiPigeonInternal.deepHash(value: allDay, hasher: &hasher)
+    NativeApiPigeonInternal.deepHash(value: calendarTitle, hasher: &hasher)
+    NativeApiPigeonInternal.deepHash(value: colorHex, hasher: &hasher)
+    NativeApiPigeonInternal.deepHash(value: taskId, hasher: &hasher)
+  }
+
+  public var description: String {
+    return "CalendarEventDto(id: \(String(describing: id)), title: \(String(describing: title)), startMillis: \(String(describing: startMillis)), endMillis: \(String(describing: endMillis)), allDay: \(String(describing: allDay)), calendarTitle: \(String(describing: calendarTitle)), colorHex: \(String(describing: colorHex)), taskId: \(String(describing: taskId)))"
+  }
+}
+
 private class NativeApiPigeonCodecReader: FlutterStandardReader {
   override func readValue(ofType type: UInt8) -> Any? {
     switch type {
@@ -419,6 +493,8 @@ private class NativeApiPigeonCodecReader: FlutterStandardReader {
       return NativeMenuItem.fromList(self.readValue() as! [Any?])
     case 133:
       return SpotifyState.fromList(self.readValue() as! [Any?])
+    case 134:
+      return CalendarEventDto.fromList(self.readValue() as! [Any?])
     default:
       return super.readValue(ofType: type)
     }
@@ -441,6 +517,9 @@ private class NativeApiPigeonCodecWriter: FlutterStandardWriter {
       super.writeValue(value.toList())
     } else if let value = value as? SpotifyState {
       super.writeByte(133)
+      super.writeValue(value.toList())
+    } else if let value = value as? CalendarEventDto {
+      super.writeByte(134)
       super.writeValue(value.toList())
     } else {
       super.writeValue(value)
@@ -937,6 +1016,159 @@ class SpotifyEvents: SpotifyEventsProtocol {
       let channelName: String = "dev.flutter.pigeon.benkyo.SpotifyEvents.changed\(messageChannelSuffix)"
       let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
       channel.sendMessage([stateArg] as [Any?]) { response in
+        guard let listResponse = response as? [Any?] else {
+          continuation.resume(throwing: createConnectionError(withChannelName: channelName))
+          return
+        }
+        if listResponse.count > 1 {
+          let code: String = listResponse[0] as! String
+          let message: String? = nilOrValue(listResponse[1])
+          let details: String? = nilOrValue(listResponse[2])
+          continuation.resume(throwing: PigeonError(code: code, message: message, details: details))
+        } else {
+          continuation.resume()
+        }
+      }
+    }
+  }
+}
+/// Apple Calendar via EventKit (includes iCloud, Google, Exchange accounts
+/// added to macOS).
+///
+/// Generated protocol from Pigeon that represents a handler of messages from Flutter.
+protocol CalendarApi {
+  func status() throws -> AccessStatus
+  func requestAccess() async throws -> Bool
+  func events(fromMillis: Int64, toMillis: Int64) async throws -> [CalendarEventDto]
+  /// Adds to the default calendar. Returns the event id.
+  func createEvent(title: String, startMillis: Int64, endMillis: Int64, taskId: String?) throws -> String
+  func deleteEvent(id: String) throws
+  func openPrivacySettings() throws
+}
+
+/// Generated setup class from Pigeon to handle messages through the `binaryMessenger`.
+class CalendarApiSetup {
+  static var codec: FlutterStandardMessageCodec { NativeApiPigeonCodec.shared }
+  /// Sets up an instance of `CalendarApi` to handle messages through the `binaryMessenger`.
+  static func setUp(binaryMessenger: FlutterBinaryMessenger, api: CalendarApi?, messageChannelSuffix: String = "") {
+    let channelSuffix = messageChannelSuffix.count > 0 ? ".\(messageChannelSuffix)" : ""
+    let statusChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.benkyo.CalendarApi.status\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      statusChannel.setMessageHandler { _, reply in
+        do {
+          let result = try api.status()
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      statusChannel.setMessageHandler(nil)
+    }
+    let requestAccessChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.benkyo.CalendarApi.requestAccess\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      requestAccessChannel.setMessageHandler { _, reply in
+        Task { @MainActor in
+          do {
+            let result = try await api.requestAccess()
+            reply(wrapResult(result))
+          } catch {
+            reply(wrapError(error))
+          }
+        }
+      }
+    } else {
+      requestAccessChannel.setMessageHandler(nil)
+    }
+    let eventsChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.benkyo.CalendarApi.events\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      eventsChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let fromMillisArg = args[0] as! Int64
+        let toMillisArg = args[1] as! Int64
+        Task { @MainActor in
+          do {
+            let result = try await api.events(fromMillis: fromMillisArg, toMillis: toMillisArg)
+            reply(wrapResult(result))
+          } catch {
+            reply(wrapError(error))
+          }
+        }
+      }
+    } else {
+      eventsChannel.setMessageHandler(nil)
+    }
+    /// Adds to the default calendar. Returns the event id.
+    let createEventChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.benkyo.CalendarApi.createEvent\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      createEventChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let titleArg = args[0] as! String
+        let startMillisArg = args[1] as! Int64
+        let endMillisArg = args[2] as! Int64
+        let taskIdArg: String? = nilOrValue(args[3])
+        do {
+          let result = try api.createEvent(title: titleArg, startMillis: startMillisArg, endMillis: endMillisArg, taskId: taskIdArg)
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      createEventChannel.setMessageHandler(nil)
+    }
+    let deleteEventChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.benkyo.CalendarApi.deleteEvent\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      deleteEventChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let idArg = args[0] as! String
+        do {
+          try api.deleteEvent(id: idArg)
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      deleteEventChannel.setMessageHandler(nil)
+    }
+    let openPrivacySettingsChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.benkyo.CalendarApi.openPrivacySettings\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      openPrivacySettingsChannel.setMessageHandler { _, reply in
+        do {
+          try api.openPrivacySettings()
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      openPrivacySettingsChannel.setMessageHandler(nil)
+    }
+  }
+}
+
+/// Generated protocol from Pigeon that represents Flutter messages that can be called from Swift.
+protocol CalendarEventsProtocol {
+  /// Calendar changed anywhere (this app, Calendar.app, sync).
+  @MainActor func changed() async throws
+}
+class CalendarEvents: CalendarEventsProtocol {
+  private let binaryMessenger: FlutterBinaryMessenger
+  private let messageChannelSuffix: String
+  init(binaryMessenger: FlutterBinaryMessenger, messageChannelSuffix: String = "") {
+    self.binaryMessenger = binaryMessenger
+    self.messageChannelSuffix = messageChannelSuffix.count > 0 ? ".\(messageChannelSuffix)" : ""
+  }
+  var codec: NativeApiPigeonCodec {
+    return NativeApiPigeonCodec.shared
+  }
+  /// Calendar changed anywhere (this app, Calendar.app, sync).
+  @MainActor func changed() async throws {
+    return try await withCheckedThrowingContinuation { continuation in
+      let channelName: String = "dev.flutter.pigeon.benkyo.CalendarEvents.changed\(messageChannelSuffix)"
+      let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
+      channel.sendMessage(nil) { response in
         guard let listResponse = response as? [Any?] else {
           continuation.resume(throwing: createConnectionError(withChannelName: channelName))
           return

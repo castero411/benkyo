@@ -16,12 +16,23 @@ class MainFlutterWindow: NSWindow {
     minSize = NSSize(width: 1024, height: 680)
     backgroundColor = NSColor(red: 0x14 / 255, green: 0x12 / 255, blue: 0x23 / 255, alpha: 1)
 
-    // Zen mode (F) is plain native full screen.
+    // Zen mode (F) is plain native full screen; links open in the browser.
     FlutterMethodChannel(
       name: "benkyo/window", binaryMessenger: flutterViewController.engine.binaryMessenger
     ).setMethodCallHandler { [weak self] call, result in
-      guard call.method == "toggleFullScreen" else { return result(FlutterMethodNotImplemented) }
-      self?.toggleFullScreen(nil)
+      switch call.method {
+      case "toggleFullScreen":
+        self?.toggleFullScreen(nil)
+      case "openUrl":
+        // Dart allows only http(s)/mailto; check again here.
+        if let text = call.arguments as? String, let url = URL(string: text),
+          ["http", "https", "mailto"].contains(url.scheme)
+        {
+          NSWorkspace.shared.open(url)
+        }
+      default:
+        return result(FlutterMethodNotImplemented)
+      }
       result(nil)
     }
 
@@ -34,6 +45,8 @@ class MainFlutterWindow: NSWindow {
     SceneryApiSetup.setUp(binaryMessenger: messenger, api: SceneryBridge())
     SpotifyApiSetup.setUp(
       binaryMessenger: messenger, api: SpotifyBridge(binaryMessenger: messenger))
+    CalendarApiSetup.setUp(
+      binaryMessenger: messenger, api: CalendarBridge(binaryMessenger: messenger))
 
     RegisterGeneratedPlugins(registry: flutterViewController)
 

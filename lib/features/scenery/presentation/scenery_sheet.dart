@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:benkyo/app/theme/tokens.dart';
-import 'package:benkyo/core/widgets/glass_panel.dart';
+import 'package:benkyo/core/widgets/glass_sheet.dart';
 import 'package:benkyo/core/widgets/platform_menu.dart';
 import 'package:benkyo/features/scenery/domain/scene.dart';
 import 'package:benkyo/features/scenery/presentation/scenery_background.dart';
@@ -11,27 +11,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// The open sheet, if any.
-DialogRoute<void>? _openSheet;
+final _sheet = SheetToggle((_) => const _ScenerySheet());
 
-/// ⌘E and the toolbar button: open the sheet, or close it if it's open,
-/// never stacking a second copy.
-void toggleScenerySheet(BuildContext context) {
-  final navigator = Navigator.of(context, rootNavigator: true);
-  final open = _openSheet;
-  if (open != null) {
-    navigator.removeRoute(open);
-    return;
-  }
-  final route = DialogRoute<void>(
-    context: context,
-    barrierColor: Colors.black.withValues(alpha: 0.35),
-    builder: (_) => const _ScenerySheet(),
-  );
-  _openSheet = route;
-  // However it closes (⌘E, Esc, ×, click outside), forget it.
-  unawaited(route.popped.whenComplete(() => _openSheet = null));
-  navigator.push(route);
-}
+/// ⌘E and the toolbar button: open the sheet, or close it if it's open.
+void toggleScenerySheet(BuildContext context) => _sheet.toggle(context);
 
 /// Opens the file picker and imports the choice. Reports in [messenger].
 Future<void> pickAndImportScenery(
@@ -84,76 +67,53 @@ class _ScenerySheet extends ConsumerWidget {
       const _AddTile(),
     ];
 
-    // Own messenger so Undo toasts appear above the dialog's barrier.
-    return ScaffoldMessenger(
-      child: Builder(
-        builder: (context) => Scaffold(
-          backgroundColor: Colors.transparent,
-          // A click outside the panel closes it, like any sheet backdrop.
-          body: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => Navigator.of(context).pop(),
-            child: Center(
-              child: GestureDetector(
-                onTap: () {}, // clicks inside the panel stay inside
-                child: SizedBox(
-                  width: 980,
-                  height: 600,
-                  child: GlassPanel(
-                    radius: 24,
-                    opacity: 0.86,
-                    padding: const EdgeInsets.fromLTRB(28, 20, 20, 24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Text('Scenery', style: text.headlineSmall),
-                            const Spacer(),
-                            IconButton(
-                              tooltip: 'Close (Esc)',
-                              icon: const Icon(Icons.close, size: 18),
-                              onPressed: () => Navigator.of(context).pop(),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: Tokens.s12),
-                        Expanded(
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: ListView(
-                                  children: [
-                                    const _Label('BUILT-IN'),
-                                    _Grid(builtIn),
-                                    const SizedBox(height: Tokens.s16),
-                                    const _Label('YOURS'),
-                                    _Grid(yours),
-                                    const SizedBox(height: Tokens.s8),
-                                    Text(
-                                      'Photos (JPEG, PNG, HEIC) and videos '
-                                      '(MP4, MOV). You can also drop them '
-                                      'anywhere on the window.',
-                                      style: text.bodySmall,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: Tokens.s24),
-                              if (current != null)
-                                SizedBox(width: 250, child: _Adjust(current)),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
+    return GlassSheet(
+      width: 980,
+      height: 600,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text('Scenery', style: text.headlineSmall),
+              const Spacer(),
+              IconButton(
+                tooltip: 'Close (Esc)',
+                icon: const Icon(Icons.close, size: 18),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ],
+          ),
+          const SizedBox(height: Tokens.s12),
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: ListView(
+                    children: [
+                      const _Label('BUILT-IN'),
+                      _Grid(builtIn),
+                      const SizedBox(height: Tokens.s16),
+                      const _Label('YOURS'),
+                      _Grid(yours),
+                      const SizedBox(height: Tokens.s8),
+                      Text(
+                        'Photos (JPEG, PNG, HEIC) and videos '
+                        '(MP4, MOV). You can also drop them '
+                        'anywhere on the window.',
+                        style: text.bodySmall,
+                      ),
+                    ],
                   ),
                 ),
-              ),
+                const SizedBox(width: Tokens.s24),
+                if (current != null)
+                  SizedBox(width: 250, child: _Adjust(current)),
+              ],
             ),
           ),
-        ),
+        ],
       ),
     );
   }

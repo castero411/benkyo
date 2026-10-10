@@ -18,6 +18,21 @@ class TimerSettings {
   final int sessionsBeforeLongBreak;
   final bool autoStartNext;
 
+  TimerSettings copyWith({
+    Duration? focus,
+    Duration? shortBreak,
+    Duration? longBreak,
+    int? sessionsBeforeLongBreak,
+    bool? autoStartNext,
+  }) => TimerSettings(
+    focus: focus ?? this.focus,
+    shortBreak: shortBreak ?? this.shortBreak,
+    longBreak: longBreak ?? this.longBreak,
+    sessionsBeforeLongBreak:
+        sessionsBeforeLongBreak ?? this.sessionsBeforeLongBreak,
+    autoStartNext: autoStartNext ?? this.autoStartNext,
+  );
+
   Duration of(Phase phase) => switch (phase) {
     Phase.focus => focus,
     Phase.shortBreak => shortBreak,

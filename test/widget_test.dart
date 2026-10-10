@@ -1,7 +1,8 @@
 import 'package:benkyo/app/app.dart';
 import 'package:benkyo/core/db/app_database.dart';
 import 'package:benkyo/core/native/native_api.g.dart';
-import 'package:benkyo/features/focus/presentation/focus_ui.dart';
+import 'package:benkyo/core/native/window.dart';
+import 'package:benkyo/features/calendar/presentation/calendar_providers.dart';
 import 'package:benkyo/features/music/domain/spotify_link.dart';
 import 'package:benkyo/features/music/presentation/music_controller.dart';
 import 'package:benkyo/features/scenery/domain/scene.dart';
@@ -52,7 +53,39 @@ class _FakeSpotify extends SpotifyApi {
   Future<void> play(String uri) async => calls.add('play $uri');
 }
 
-Future<void> _pumpApp(WidgetTester tester, {SpotifyApi? spotify}) async {
+/// Calendar access granted, with [events]; records what Benkyo writes.
+class _FakeCalendar extends CalendarApi {
+  _FakeCalendar(this.events_);
+
+  final List<CalendarEventDto> events_;
+  final created = <String>[];
+  final deleted = <String>[];
+
+  @override
+  Future<AccessStatus> status() async => AccessStatus.granted;
+  @override
+  Future<List<CalendarEventDto>> events(int from, int to) async => events_;
+  @override
+  Future<String> createEvent(
+    String title,
+    int start,
+    int end,
+    String? taskId,
+  ) async {
+    created.add('$title ${(end - start) ~/ 60000}min task:$taskId');
+    return 'event-1';
+  }
+
+  @override
+  Future<void> deleteEvent(String id) async => deleted.add(id);
+}
+
+Future<void> _pumpApp(
+  WidgetTester tester, {
+  SpotifyApi? spotify,
+  CalendarApi? calendar,
+  bool firstLaunch = false,
+}) async {
   tester.view.physicalSize = const Size(1280, 800);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
@@ -62,6 +95,7 @@ Future<void> _pumpApp(WidgetTester tester, {SpotifyApi? spotify}) async {
       closeStreamsSynchronously: true,
     ),
   );
+  if (!firstLaunch) await db.setPref('onboarding.done', 'true');
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
@@ -69,6 +103,7 @@ Future<void> _pumpApp(WidgetTester tester, {SpotifyApi? spotify}) async {
         appDatabaseProvider.overrideWithValue(db),
         clockProvider.overrideWithValue(() => _now),
         if (spotify != null) spotifyApiProvider.overrideWithValue(spotify),
+        if (calendar != null) calendarApiProvider.overrideWithValue(calendar),
       ],
       child: const BenkyoApp(),
     ),
@@ -161,8 +196,10 @@ void main() {
       'Mark as Completed',
       null,
       'Priority',
+      'Schedule…',
       'Due Date',
       null,
+      'Add Note…',
       'Rename',
       null,
       'Delete',
@@ -318,5 +355,187 @@ void main() {
     await tester.pump();
     expect(find.text('Benkyo can’t control Spotify'), findsOneWidget);
     expect(find.text('Open Settings'), findsOneWidget);
+  }, variant: macOS);
+
+  testWidgets('Today panel lists events; a scheduled task starts focus', (
+    tester,
+  ) async {
+    final now = DateTime.now();
+    int ms(int minutes) =>
+        now.add(Duration(minutes: minutes)).millisecondsSinceEpoch;
+    final calendar = _FakeCalendar([
+      CalendarEventDto(
+        id: 'a',
+        title: 'Standup',
+        startMillis: ms(-1),
+        endMillis: ms(1),
+        allDay: false,
+        calendarTitle: 'Work',
+        colorHex: '#7FB5FF',
+      ),
+      CalendarEventDto(
+        id: 'b',
+        title: 'Write docs',
+        startMillis: ms(2),
+        endMillis: ms(27),
+        allDay: false,
+        calendarTitle: 'Work',
+        colorHex: '#7FB5FF',
+        taskId: '7',
+      ),
+    ]);
+    await _pumpApp(tester, calendar: calendar);
+    await tester.tap(find.bySemanticsLabel('Open today'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Standup'), findsOneWidget);
+    expect(find.text('Work · 2 min'), findsOneWidget);
+    expect(find.text('Scheduled task · 25 min'), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp('^Now, ')), findsOneWidget);
+
+    await tester.tap(find.text('Write docs'));
+    await tester.pump();
+    expect(find.text('Pause'), findsOneWidget); // focus session started
+    await tester.tap(find.text('Pause')); // stop the ticker
+    await tester.pump();
+  }, variant: macOS);
+
+  testWidgets('Schedule… adds a calendar block and sets the due time', (
+    tester,
+  ) async {
+    final calendar = _FakeCalendar([]);
+    tester.binding.defaultBinaryMessenger.setMockMessageHandler(
+      'dev.flutter.pigeon.benkyo.MenuApi.show',
+      (_) async => MenuApi.pigeonChannelCodec.encodeMessage(['schedule']),
+    );
+    await _pumpApp(tester, calendar: calendar);
+    await tester.tap(find.bySemanticsLabel('Open tasks'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'Write docs !1');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Write docs'), buttons: kSecondaryButton);
+    await tester.pumpAndSettle();
+    expect(find.text('Schedule “Write docs”'), findsOneWidget);
+    await tester.tap(find.text('Add to Calendar')); // first free slot, 25 min
+    await tester.pumpAndSettle();
+
+    expect(calendar.created, ['Write docs 25min task:1']);
+    expect(find.textContaining('Scheduled “Write docs”'), findsOneWidget);
+
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+    expect(calendar.deleted, ['event-1']);
+  }, variant: macOS);
+
+  testWidgets('write a note: title from first line, saved, searchable', (
+    tester,
+  ) async {
+    await _pumpApp(tester);
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(BenkyoApp)),
+    );
+    await tester.tap(find.byTooltip('Notes (⌘J)'));
+    await tester.pumpAndSettle();
+    expect(find.text('No notes yet.'), findsOneWidget);
+
+    await tester.tap(find.text('New Note'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byType(TextField).last,
+      '# Sprint plan\n\n- ship the docs',
+    );
+    await tester.pump(const Duration(milliseconds: 500)); // autosave
+    await tester.pumpAndSettle();
+
+    expect(find.text('Sprint plan'), findsWidgets); // list + preview
+    final db = container.read(appDatabaseProvider);
+    final saved = await db.select(db.notes).get();
+    expect(saved.single.body, '# Sprint plan\n\n- ship the docs');
+
+    await tester.enterText(find.widgetWithText(TextField, 'Search'), 'zzz');
+    await tester.pumpAndSettle();
+    expect(find.text('No notes match.'), findsOneWidget);
+
+    // ⌘J / the button closes it again.
+    await tester.tap(find.byTooltip('Notes (⌘J)'), warnIfMissed: false);
+    await tester.pumpAndSettle();
+    expect(find.text('Notes'), findsNothing);
+  }, variant: macOS);
+
+  testWidgets('Add Note… on a task creates a linked note', (tester) async {
+    tester.binding.defaultBinaryMessenger.setMockMessageHandler(
+      'dev.flutter.pigeon.benkyo.MenuApi.show',
+      (_) async => MenuApi.pigeonChannelCodec.encodeMessage(['note']),
+    );
+    await _pumpApp(tester);
+    await tester.tap(find.bySemanticsLabel('Open tasks'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'Write docs !1');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Write docs'), buttons: kSecondaryButton);
+    await tester.pumpAndSettle();
+    expect(find.text('Task · Write docs'), findsOneWidget);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape); // close sheet
+    await tester.pumpAndSettle();
+    expect(find.text('Note'), findsOneWidget); // indicator on the task row
+  }, variant: macOS);
+
+  testWidgets('first launch: tour picks a scene and adds the first task', (
+    tester,
+  ) async {
+    await _pumpApp(tester, firstLaunch: true);
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(BenkyoApp)),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Pick your scene'), findsOneWidget);
+
+    await tester.tap(find.bySemanticsLabel('Golden hour').last);
+    await tester.pumpAndSettle();
+    expect(container.read(currentSceneProvider)?.id, 'builtin:golden-hour');
+
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+    expect(find.text('Choose your music'), findsOneWidget);
+    await tester.tap(find.text('Continue')); // music is optional
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.widgetWithText(TextField, 'First task'),
+      'Read paper !2',
+    );
+    await tester.tap(find.text('Start Focusing'));
+    await tester.pumpAndSettle();
+    expect(find.text('Pick your scene'), findsNothing);
+
+    await tester.tap(find.bySemanticsLabel('Open tasks'));
+    await tester.pumpAndSettle();
+    expect(find.text('Read paper'), findsOneWidget);
+    expect(find.text('P2 · HIGH'), findsOneWidget);
+    final db = container.read(appDatabaseProvider);
+    expect(
+      (await db.prefsWithPrefix('onboarding.'))['onboarding.done'],
+      'true',
+    );
+  }, variant: macOS);
+
+  testWidgets('Settings: a longer focus applies to the idle timer', (
+    tester,
+  ) async {
+    await _pumpApp(tester);
+    await tester.tap(find.byTooltip('Settings (⌘,)'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('More Focus'));
+    await tester.pumpAndSettle();
+    expect(find.text('30 min'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Close (Esc)').last);
+    await tester.pumpAndSettle();
+    expect(find.text('30:00'), findsOneWidget);
   }, variant: macOS);
 }

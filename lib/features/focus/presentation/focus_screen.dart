@@ -1,10 +1,15 @@
 import 'package:benkyo/app/theme/tokens.dart';
-import 'package:benkyo/core/widgets/glass_panel.dart';
+import 'package:benkyo/core/native/window.dart';
+import 'package:benkyo/features/calendar/presentation/today_panel.dart';
 import 'package:benkyo/features/focus/presentation/focus_ui.dart';
 import 'package:benkyo/features/music/presentation/mini_player.dart';
+import 'package:benkyo/features/notes/presentation/notes_sheet.dart';
+import 'package:benkyo/features/onboarding/presentation/onboarding_overlay.dart';
+import 'package:benkyo/features/onboarding/presentation/onboarding_providers.dart';
 import 'package:benkyo/features/scenery/presentation/scenery_background.dart';
 import 'package:benkyo/features/scenery/presentation/scenery_drop_target.dart';
 import 'package:benkyo/features/scenery/presentation/scenery_sheet.dart';
+import 'package:benkyo/features/settings/presentation/settings_sheet.dart';
 import 'package:benkyo/features/tasks/presentation/tasks_panel.dart';
 import 'package:benkyo/features/timer/presentation/timer_card.dart';
 import 'package:flutter/material.dart';
@@ -49,9 +54,19 @@ class FocusScreen extends ConsumerWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
+                      tooltip: 'Notes (⌘J)',
+                      icon: const Icon(Icons.sticky_note_2_outlined),
+                      onPressed: () => toggleNotesSheet(context),
+                    ),
+                    IconButton(
                       tooltip: 'Scenery (⌘E)',
                       icon: const Icon(Icons.landscape_outlined),
                       onPressed: () => toggleScenerySheet(context),
+                    ),
+                    IconButton(
+                      tooltip: 'Settings (⌘,)',
+                      icon: const Icon(Icons.tune),
+                      onPressed: () => toggleSettingsSheet(context),
                     ),
                     const IconButton(
                       tooltip: 'Zen mode: full screen (F)',
@@ -100,12 +115,10 @@ class FocusScreen extends ConsumerWidget {
               bottom: _aboveMiniPlayer,
               right: ui.todayOpen ? Tokens.s16 : -340,
               width: 304,
-              child: _Panel(
-                title: 'Today',
-                empty: 'Nothing scheduled today',
-                onClose: notifier.toggleToday,
-              ),
+              child: TodayPanel(onClose: notifier.toggleToday),
             ),
+            if (ref.watch(onboardingProvider).value ?? false)
+              const Positioned.fill(child: OnboardingOverlay()),
           ],
         ),
       ),
@@ -158,48 +171,6 @@ class _EdgeTab extends StatelessWidget {
               ),
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _Panel extends StatelessWidget {
-  const _Panel({
-    required this.title,
-    required this.empty,
-    required this.onClose,
-  });
-
-  final String title;
-  final String empty;
-  final VoidCallback onClose;
-
-  @override
-  Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-    return Semantics(
-      container: true,
-      label: title,
-      child: GlassPanel(
-        opacity: Tokens.glassOpacityStrong,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(child: Text(title, style: text.titleLarge)),
-                IconButton(
-                  tooltip: 'Close (Esc)',
-                  icon: const Icon(Icons.close, size: 18),
-                  onPressed: onClose,
-                ),
-              ],
-            ),
-            Expanded(
-              child: Center(child: Text(empty, style: text.bodySmall)),
-            ),
-          ],
         ),
       ),
     );

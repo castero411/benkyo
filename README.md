@@ -6,7 +6,8 @@ control, and a lofi scenery background in one window, so you never have to leave
 
 Built with Flutter, with a small native Swift layer for macOS-only features.
 
-> **Status:** early development. Phases 1–5 (skeleton, tasks + Reminders sync, timer, scenery, Spotify) are done. See [Roadmap](#roadmap) for
+> **Status:** all 8 planned phases are done: tasks + Reminders sync, timer, scenery, Spotify,
+> calendar, notes, settings, onboarding, accessibility audit and app icon. See [Roadmap](#roadmap) for
 > what works today and what's coming. The full product plan lives in [PLAN.md](PLAN.md).
 
 ---
@@ -20,6 +21,7 @@ Built with Flutter, with a small native Swift layer for macOS-only features.
 - [Project structure](#project-structure)
 - [Architecture](#architecture)
 - [Design system](#design-system)
+- [App icon](#app-icon)
 - [Native macOS layer](#native-macos-layer)
 - [Permissions](#permissions)
 - [Code quality and testing](#code-quality-and-testing)
@@ -38,10 +40,12 @@ Built with Flutter, with a small native Swift layer for macOS-only features.
 | **Pomodoro timer** | Focus, short break and long break (25 / 5 / 15 minutes, long break after 4 sessions), with macOS notifications, a session log, and "Focus on This Task". Stays correct across sleep. | ✅ |
 | **Tasks** | Priorities P1 to P4, quick-add (`!1` to `!4` in the title sets the priority), Today / All / Done views, rename, due today/tomorrow, delete with Undo. "Focus on this task" comes with the timer. | ✅ |
 | **Apple Reminders sync** | Tasks live in a "Benkyo" list in Apple Reminders, so they show up on iPhone and Apple Watch. If you deny access, tasks are kept in the app only. | ✅ |
-| **Calendar** | A Today panel showing your Calendar events, plus scheduling a task as an event. | Phase 6 |
+| **Calendar** | Today panel with your Apple Calendar events (all-day, timeline, "now" line). **Schedule…** a task into a suggested free slot or any time; it becomes a calendar block and the task's due time. | ✅ |
 | **Scenery** | 6 built-in lofi photos + 2 rain video loops (openly licensed, credited). Add your own photos (incl. iPhone HEIC) and videos by picker or drag & drop. Per-scene dim and blur; optional change each phase. | ✅ |
 | **Spotify** | Mini player: play/pause/skip, track + artwork + progress, 5 focus playlist presets, paste any Spotify link. Works with **Free and Premium**. | ✅ |
-| **Notes** | Markdown notes, optionally linked to a task or a focus session. | Phase 7 |
+| **Settings** | Focus / break lengths, sessions before a long break, auto-start next phase, replay the welcome tour (`⌘,`). | ✅ |
+| **Welcome tour** | 3 skippable steps on first launch: pick a scene (live), optional music, first task. | ✅ |
+| **Notes** | Markdown notes with Edit / Split / Preview, autosave, search; link a note to a task. | ✅ |
 
 ---
 
@@ -76,7 +80,7 @@ dart run pigeon --input pigeons/native_api.dart   # → native_api.g.dart + Nati
 # 3. Run in debug mode
 flutter run -d macos
 
-# 4. Build a release app
+# 4. Build a release app (sandboxed, ~80 MB)
 flutter build macos
 # → build/macos/Build/Products/Release/Benkyo.app
 ```
@@ -101,12 +105,23 @@ To work on the native code, open `macos/Runner.xcworkspace` in Xcode.
 | `⌘R` | Reset the current phase | Menu bar: Timer |
 | `⌘→` | Skip to the next phase | Menu bar: Timer |
 | `⌘E` | Open or close Scenery | Menu bar: View |
-| `⌘,` | Settings | Coming with Settings |
+| `⌘J` | Open or close Notes | Menu bar: Notes |
+| `⌘⇧N` | New note | Menu bar: Notes |
+| `⌘,` | Open or close Settings | Menu bar: Benkyo |
 
 **Why some shortcuts are in the menu bar and some are in the app:** `⌘` shortcuts are native
 menu items, so you can find them in the menus as usual on macOS. Single keys (`F`, `Esc`, `Space`) are
 handled inside the app instead. That way they **never trigger while you're typing** in a text field,
 since a menu-bar shortcut would catch those keys even mid-sentence.
+
+### First launch and Settings
+
+- On first launch a short **welcome tour** appears: pick a scene (the background changes as you
+  click), optionally a focus playlist (played when you finish; nothing touches Spotify otherwise),
+  and your first task. **Skip setup** at any time.
+- **Settings** (`⌘,`, the sliders button, or *Benkyo → Settings…*): focus length, short and long
+  break lengths, how many sessions before a long break, starting the next phase automatically, and
+  **Show Welcome Tour Again**. Changes apply right away to a timer that hasn't started.
 
 ### Timer
 
@@ -120,7 +135,32 @@ since a menu-bar shortcut would catch those keys even mid-sentence.
   or click × to unlink it.
 - **Sleep-proof:** the timer stores when the phase *ends* (wall clock), not a countdown. Close the
   lid mid-session and on wake it shows the right time, or moves on if the phase already ended.
-- Durations are fixed at 25 / 5 / 15 for now. They become editable with the Settings screen.
+- Lengths and the long-break cycle are set in **Settings**.
+
+### Notes
+
+- Open **Notes** with `⌘J` or the note button (top right); `⌘J` again, `Esc` or a click outside
+  closes it. `⌘⇧N` starts a new note.
+- Write in **Markdown**. Choose **Edit**, **Split** (editor + live preview) or **Preview**. Links in
+  the preview open in your browser.
+- The **first line is the title** (as in Apple Notes). Notes **save automatically** as you type;
+  closing the sheet or switching notes never loses the last keystrokes.
+- **Search** filters by any text in the note. Right-click a note → **Delete** (with Undo).
+- **Task notes:** right-click a task → **Add Note…** (starts with the task's title as a heading)
+  or **Open Note**. Tasks with a note show a small *Note* link; notes show which task they belong to.
+
+### Today and scheduling
+
+- **Today** (`⌘D` or the right edge tab) shows today's events from Apple Calendar, including
+  iCloud, Google and Exchange accounts added to macOS: all-day events on top, then a timeline with
+  a red **now** line; finished events fade.
+- The first time, the panel offers **Show your calendar → Turn on**; macOS then asks for access.
+- **Schedule a task:** right-click a task (or `⋯`) → **Schedule…**, or *Schedule a Task…* at the
+  bottom of Today. Pick a length (25 / 50 min / 1 hr, from your focus length) and one of the
+  suggested free slots (next quarter hour onward, 8:00–22:00, today then tomorrow), or **Other
+  time…**. Benkyo adds the block to your default calendar and sets it as the task's due time
+  (so it shows in Reminders too). **Undo** removes both.
+- Blocks created from tasks are highlighted in Today; click one to start focusing on that task.
 
 ### Music (Spotify)
 
@@ -187,12 +227,21 @@ lib/
 │   └── theme/
 │       └── tokens.dart           # Design tokens + ThemeData (single source of the look)
 ├── core/
-│   ├── db/app_database.dart      # drift: local_tasks, sessions, user_scenes, prefs (+ .g.dart)
-│   ├── native/native_api.g.dart  # Pigeon-generated Dart side of the native bridge
+│   ├── db/app_database.dart      # drift: local_tasks, sessions, user_scenes, prefs, notes
+│   ├── native/
+│   │   ├── native_api.g.dart     # Pigeon-generated Dart side of the native bridge
+│   │   └── window.dart           # benkyo/window channel: full screen, open links
 │   └── widgets/
 │       ├── glass_panel.dart      # Shared frosted-glass surface
+│       ├── glass_sheet.dart      # SheetToggle (⌘-key open/close) + GlassSheet backdrop
 │       └── platform_menu.dart    # Context/pull-down menus: native NSMenu on macOS
 └── features/
+    ├── calendar/
+    │   ├── domain/calendar_event.dart   # Event model + free-slot finder
+    │   └── presentation/
+    │       ├── calendar_providers.dart  # Access, today/tomorrow events (live)
+    │       ├── today_panel.dart         # Timeline, now line, access card
+    │       └── schedule_dialog.dart     # Length, suggested slots, custom time, Undo
     ├── focus/
     │   └── presentation/
     │       ├── focus_screen.dart # Home screen: timer card, edge tabs, panels
@@ -202,6 +251,13 @@ lib/
     │   └── presentation/
     │       ├── music_controller.dart    # State from Spotify events, commands, errors
     │       └── mini_player.dart         # Bottom bar, playlist menu, paste-link dialog
+    ├── notes/
+    │   ├── domain/note_text.dart        # Title / preview / search from the Markdown body
+    │   └── presentation/
+    │       ├── notes_providers.dart     # Notes stream, task → note map, store (create/save/delete)
+    │       └── notes_sheet.dart         # List + search, editor modes, autosave, task notes
+    ├── onboarding/presentation/        # Welcome tour overlay + "done" flag
+    ├── settings/presentation/          # Settings sheet (timer lengths, tour)
     ├── scenery/
     │   ├── domain/scene.dart     # Scene model, built-in catalog + credits, import rules, rotation
     │   └── presentation/
@@ -232,6 +288,7 @@ macos/Runner/
 ├── NotificationsBridge.swift     # Phase-end notifications (NotificationsApi)
 ├── SceneryBridge.swift           # HEIC→JPEG, video poster frames (SceneryApi)
 ├── SpotifyBridge.swift           # AppleScript control + playback notifications (SpotifyApi)
+├── CalendarBridge.swift          # EventKit events read/create/delete (CalendarApi)
 └── NativeApi.g.swift             # Pigeon-generated Swift side
 
 test/
@@ -239,7 +296,10 @@ test/
 ├── features/timer/pomodoro_test.dart # Cycle order, pause/resume, sleep, rounding, auto-start
 ├── features/scenery/scene_test.dart  # Built-in files + credits exist, import kinds, rotation
 ├── features/music/spotify_link_test.dart # Link parsing, rejects injection, presets valid
-└── widget_test.dart              # Panels, shortcuts, full screen, sheet toggle, flows
+├── features/calendar/free_slots_test.dart # Quarter-hour start, busy/all-day, roll to tomorrow
+├── features/notes/note_text_test.dart # Title/preview/search rules
+├── accessibility_test.dart       # Labels + WCAG contrast on main screen and every sheet
+└── widget_test.dart              # Panels, shortcuts, full screen, sheets, tour, settings, flows
 ```
 
 As more features are added (see [PLAN.md](PLAN.md)), each one follows the same shape:
@@ -299,8 +359,10 @@ drift (SQLite): app-only data (session log, notes, scenes, task sort order)
 - **Notifications are booked when a phase starts**, for its end time, and cancelled on pause,
   reset or skip. They fire on time even if macOS throttles the app in the background (App Nap).
 - **Settings** live in the `prefs` key–value table (`db.prefsWithPrefix`, `db.setPref`), e.g.
-  `scene.current`, `scene.rotate`, `scene.adjust.<id>` = `dim,blur`.
-- **Database migrations:** `schemaVersion` 2 adds `sessions`, 3 adds `user_scenes` and `prefs`. Bump the version and add an
+  `timer.focus` (minutes), `timer.cycle`, `timer.auto`, `scene.current`, `scene.rotate`,
+  `scene.adjust.<id>` = `dim,blur`, `onboarding.done`.
+- **Database migrations:** `schemaVersion` 2 adds `sessions`, 3 adds `user_scenes` and `prefs`,
+  4 adds `notes`. Bump the version and add an
   `onUpgrade` step for every schema change, so existing users keep their data.
 
 ---
@@ -341,6 +403,14 @@ The design mockups are on the Phase 0 canvas, linked in [PLAN.md](PLAN.md).
 
 ---
 
+## App icon
+
+[`macos/Runner/Assets.xcassets/AppIcon.appiconset`](macos/Runner/Assets.xcassets/AppIcon.appiconset):
+勉 (*ben*, the first character of 勉強 *benkyō*, "study") inside an amber timer ring, on a
+night-indigo body with a warm lamp glow, matching the design tokens. Drawn in code (CoreGraphics)
+on Apple's macOS icon grid (824 pt body on a 1024 canvas, with the standard soft shadow) and
+exported at 16–1024 px.
+
 ## Native macOS layer
 
 ### Window chrome
@@ -359,6 +429,7 @@ Swift, so no extra package is needed:
 | Direction | Method | Effect |
 |---|---|---|
 | Dart → Swift | `toggleFullScreen` | `NSWindow.toggleFullScreen`, the same as the green button or ⌃⌘F |
+| Dart → Swift | `openUrl(url)` | Opens `http(s)`/`mailto` links in the default app (checked on both sides) |
 
 ### Reminders bridge (Pigeon)
 
@@ -430,7 +501,14 @@ thumbnail and shown while the video loads).
 Nothing in the bridge starts Spotify except `launch()` (a `tell` would). AppleScript runs from a
 plain main run-loop turn, the same rule as the menu bridge.
 
-Planned bridge: Calendar (EventKit).
+### Calendar bridge (Pigeon)
+
+`CalendarApi` ([`CalendarBridge.swift`](macos/Runner/CalendarBridge.swift)): `status()`,
+`requestAccess()` (`requestFullAccessToEvents`), `events(from, to)` (all calendars, with each
+calendar's color), `createEvent(title, start, end, taskId)` (default calendar; the event URL
+`benkyo://task/<id>` links it back to the task), `deleteEvent(id)`, `openPrivacySettings()`.
+`CalendarEvents.changed()` fires on `EKEventStoreChanged`, so edits in Calendar.app or on another
+device show up immediately.
 
 ---
 
@@ -442,7 +520,7 @@ Benkyo asks for each permission only when you first use the feature that needs i
 |---|---|---|
 | Reminders (full access) | Syncing tasks with Apple Reminders | ✅ 2 |
 | Notifications | Phase-end banners and sound (asked on first Start) | ✅ 3 |
-| Calendars (full access) | The Today panel and scheduling tasks | 6 |
+| Calendars (full access) | The Today panel and scheduling tasks (asked on *Turn on* or first *Schedule…*) | ✅ 6 |
 | Automation → Spotify | Controlling the Spotify desktop app (asked on first music control) | ✅ 5 |
 | Files you choose (read-only) | Importing your own scenery images and videos | ✅ 4 |
 | Network (outgoing) | Loading album artwork | ✅ 5 |
@@ -468,6 +546,13 @@ rules turned off on purpose (see `analysis_options.yaml`):
 - `unnecessary_type_name_in_constructor`: keeps the usual Flutter style of naming constructors
   after the class.
 
+**Accessibility audit:** [`test/accessibility_test.dart`](test/accessibility_test.dart) runs
+Flutter's `labeledTapTargetGuideline` (every tappable thing has a VoiceOver label) and
+`textContrastGuideline` (WCAG AA) on the Focus screen with both panels open and on each sheet. It
+found and fixed: a full-window unlabeled tap target behind every sheet (the click-outside backdrop,
+now excluded from accessibility since Close and Esc cover it) and an overflowing button row in
+the Today panel. Keep it green when adding UI.
+
 **Testing approach:** each piece of real logic gets one focused test, not a full suite for every
 function. Widget tests run as macOS, because the native menu bar only exists there:
 
@@ -492,6 +577,14 @@ The scenery widget test picks a scene in the sheet, turns on *Change scene each 
 timer phase, and checks the scene advanced and both choices were saved. Writing it caught two
 real layout bugs (an overflowing tile and a hidden list-tile highlight).
 
+The notes widget tests write a note (checking the title, the autosaved row in the database, and
+search) and add a note from a task's menu. They caught a real bug: a search that hid the selected
+note still showed it in the editor.
+
+The calendar widget tests use a fake `CalendarApi`: Today lists events with the now line and a
+scheduled-task block starts focus; *Schedule…* creates a 25-minute block for the task and Undo
+deletes it.
+
 The music widget tests use a fake `SpotifyApi`: choosing a preset while Spotify is closed
 launches it then plays; the now-playing bar shows the track and sends pause; a denied permission
 shows the Settings fix. They caught a text overflow in the bar.
@@ -508,9 +601,9 @@ shows the Settings fix. They caught a text overflow in the bar.
 | 3 | Timer, notifications, session log | ✅ |
 | 4 | Scenery: built-in scenes, importing your own, video, dim and blur | ✅ |
 | 5 | Spotify through AppleScript (free and Premium), playlist presets, pasting a link | ✅ |
-| 6 | Calendar Today panel, scheduling a task | Next |
-| 7 | Notes | |
-| 8 | Onboarding, accessibility check, app icon, polish | |
+| 6 | Calendar Today panel, scheduling a task | ✅ |
+| 7 | Notes | ✅ |
+| 8 | Settings, onboarding, accessibility audit, app icon, shared sheet helper | ✅ |
 
 **Later:**
 - Appearance presets (switchable looks built on the design tokens)

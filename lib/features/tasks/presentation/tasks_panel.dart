@@ -4,6 +4,9 @@ import 'package:benkyo/app/theme/tokens.dart';
 import 'package:benkyo/core/native/native_api.g.dart';
 import 'package:benkyo/core/widgets/glass_panel.dart';
 import 'package:benkyo/core/widgets/platform_menu.dart';
+import 'package:benkyo/features/calendar/presentation/schedule_dialog.dart';
+import 'package:benkyo/features/notes/presentation/notes_providers.dart';
+import 'package:benkyo/features/notes/presentation/notes_sheet.dart';
 import 'package:benkyo/features/tasks/domain/task.dart';
 import 'package:benkyo/features/tasks/presentation/tasks_providers.dart';
 import 'package:benkyo/features/timer/presentation/timer_controller.dart';
@@ -124,14 +127,16 @@ class _SyncCard extends ConsumerWidget {
             style: text.bodySmall,
           ),
           const SizedBox(height: Tokens.s8),
-          Row(
+          // Wraps: narrow panels can't fit both buttons on one line.
+          Wrap(
+            spacing: Tokens.s8,
+            runSpacing: Tokens.s4,
             children: [
               FilledButton(
                 style: FilledButton.styleFrom(minimumSize: const Size(0, 32)),
                 onPressed: denied ? sync.openSettings : sync.enable,
                 child: Text(denied ? 'Open Settings' : 'Turn on'),
               ),
-              const SizedBox(width: Tokens.s8),
               TextButton(
                 onPressed: ref.read(syncCardDismissedProvider.notifier).dismiss,
                 child: const Text('Not now'),
@@ -329,6 +334,7 @@ class _TaskRowState extends ConsumerState<_TaskRow> {
   Future<void> _showMenu(Offset position) async {
     final due = task.due;
     final dueDay = due == null ? null : DateTime(due.year, due.month, due.day);
+    final hasNote = ref.read(noteByTaskProvider).containsKey(task.id);
     final id = await showPlatformMenu(context, position, [
       if (!task.done) ...[
         const MenuEntry('Focus on This Task', id: 'focus'),
@@ -350,6 +356,7 @@ class _TaskRowState extends ConsumerState<_TaskRow> {
             ),
         ],
       ),
+      if (!task.done) const MenuEntry('Schedule…', id: 'schedule'),
       MenuEntry(
         'Due Date',
         children: [
@@ -360,6 +367,7 @@ class _TaskRowState extends ConsumerState<_TaskRow> {
         ],
       ),
       const MenuEntry.separator(),
+      MenuEntry(hasNote ? 'Open Note' : 'Add Note…', id: 'note'),
       const MenuEntry('Rename', id: 'rename'),
       const MenuEntry.separator(),
       const MenuEntry('Delete', id: 'delete'),
@@ -376,6 +384,10 @@ class _TaskRowState extends ConsumerState<_TaskRow> {
         await _save(task.copyWith(due: () => _day(1)));
       case 'no-due':
         await _save(task.copyWith(due: () => null));
+      case 'schedule':
+        await scheduleTask(context, ref, task);
+      case 'note':
+        await openNoteForTask(context, ref, task);
       case 'rename':
         setState(() => _editing = true);
       case 'delete':
@@ -438,6 +450,22 @@ class _TaskRowState extends ConsumerState<_TaskRow> {
                     ),
                   if (due != null && !task.done)
                     Text(_dueLabel(context, due), style: text.bodySmall),
+                  if (ref.watch(noteByTaskProvider).containsKey(task.id))
+                    InkWell(
+                      onTap: () => openNoteForTask(context, ref, task),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.sticky_note_2_outlined,
+                            size: 12,
+                            color: Tokens.textSecondary,
+                          ),
+                          const SizedBox(width: Tokens.s4),
+                          Text('Note', style: text.bodySmall),
+                        ],
+                      ),
+                    ),
                 ],
               ),
             ),

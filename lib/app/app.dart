@@ -1,9 +1,12 @@
 import 'dart:async';
 
 import 'package:benkyo/app/theme/tokens.dart';
+import 'package:benkyo/core/native/window.dart';
 import 'package:benkyo/features/focus/presentation/focus_screen.dart';
 import 'package:benkyo/features/focus/presentation/focus_ui.dart';
+import 'package:benkyo/features/notes/presentation/notes_sheet.dart';
 import 'package:benkyo/features/scenery/presentation/scenery_sheet.dart';
+import 'package:benkyo/features/settings/presentation/settings_sheet.dart';
 import 'package:benkyo/features/tasks/presentation/tasks_providers.dart';
 import 'package:benkyo/features/timer/presentation/timer_controller.dart';
 import 'package:flutter/material.dart';
@@ -26,10 +29,10 @@ class BenkyoApp extends ConsumerWidget {
     // Bare keys (F, Esc) are handled in-app so they never fire while typing.
     return PlatformMenuBar(
       menus: [
-        const PlatformMenu(
+        PlatformMenu(
           label: 'Benkyo',
           menus: [
-            PlatformMenuItemGroup(
+            const PlatformMenuItemGroup(
               members: [
                 PlatformProvidedMenuItem(
                   type: PlatformProvidedMenuItemType.about,
@@ -37,6 +40,21 @@ class BenkyoApp extends ConsumerWidget {
               ],
             ),
             PlatformMenuItemGroup(
+              members: [
+                PlatformMenuItem(
+                  label: 'Settings…',
+                  shortcut: const SingleActivator(
+                    LogicalKeyboardKey.comma,
+                    meta: true,
+                  ),
+                  onSelected: () {
+                    final context = rootNavigatorKey.currentContext;
+                    if (context != null) toggleSettingsSheet(context);
+                  },
+                ),
+              ],
+            ),
+            const PlatformMenuItemGroup(
               members: [
                 PlatformProvidedMenuItem(
                   type: PlatformProvidedMenuItemType.hide,
@@ -60,6 +78,34 @@ class BenkyoApp extends ConsumerWidget {
               onSelected: () {
                 ui.openTasks();
                 ref.read(quickAddFocusProvider).requestFocus();
+              },
+            ),
+          ],
+        ),
+        PlatformMenu(
+          label: 'Notes',
+          menus: [
+            PlatformMenuItem(
+              label: 'Show Notes',
+              shortcut: const SingleActivator(
+                LogicalKeyboardKey.keyJ,
+                meta: true,
+              ),
+              onSelected: () {
+                final context = rootNavigatorKey.currentContext;
+                if (context != null) toggleNotesSheet(context);
+              },
+            ),
+            PlatformMenuItem(
+              label: 'New Note',
+              shortcut: const SingleActivator(
+                LogicalKeyboardKey.keyN,
+                meta: true,
+                shift: true,
+              ),
+              onSelected: () {
+                final context = rootNavigatorKey.currentContext;
+                if (context != null) unawaited(newNote(context, ref));
               },
             ),
           ],
