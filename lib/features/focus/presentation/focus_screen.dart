@@ -2,6 +2,7 @@ import 'package:benkyo/app/theme/tokens.dart';
 import 'package:benkyo/core/widgets/glass_panel.dart';
 import 'package:benkyo/features/focus/presentation/focus_ui.dart';
 import 'package:benkyo/features/tasks/presentation/tasks_panel.dart';
+import 'package:benkyo/features/timer/presentation/timer_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -25,7 +26,7 @@ class FocusScreen extends ConsumerWidget {
         children: [
           // Scenery lands here in Phase 4.
           const Positioned.fill(child: ColoredBox(color: Tokens.ground)),
-          const Center(child: _TimerCard()),
+          const Center(child: TimerCard()),
           _Fade(
             visible: chrome,
             duration: fade,
@@ -86,30 +87,6 @@ class FocusScreen extends ConsumerWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _TimerCard extends StatelessWidget {
-  const _TimerCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 480,
-      child: GlassPanel(
-        radius: Tokens.r28,
-        padding: const EdgeInsets.fromLTRB(32, 28, 32, 30),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('25:00', style: Theme.of(context).textTheme.displayLarge),
-            const SizedBox(height: Tokens.s24),
-            // Timer logic arrives in Phase 3.
-            const FilledButton(onPressed: null, child: Text('Start')),
-          ],
-        ),
       ),
     );
   }

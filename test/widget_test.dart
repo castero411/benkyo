@@ -3,6 +3,7 @@ import 'package:benkyo/core/db/app_database.dart';
 import 'package:benkyo/core/native/native_api.g.dart';
 import 'package:benkyo/features/focus/presentation/focus_ui.dart';
 import 'package:benkyo/features/tasks/presentation/tasks_providers.dart';
+import 'package:benkyo/features/timer/presentation/timer_controller.dart';
 import 'package:drift/drift.dart' show DatabaseConnection;
 import 'package:drift/native.dart';
 import 'package:flutter/gestures.dart' show kSecondaryButton;
@@ -16,6 +17,9 @@ class _NoRemindersYet extends RemindersApi {
   @override
   Future<AccessStatus> status() async => AccessStatus.notDetermined;
 }
+
+/// Fake wall clock; tests move it to simulate time passing or sleep.
+var _now = DateTime(2026, 10, 10, 9);
 
 Future<void> _pumpApp(WidgetTester tester) async {
   tester.view.physicalSize = const Size(1280, 800);
@@ -32,6 +36,7 @@ Future<void> _pumpApp(WidgetTester tester) async {
       overrides: [
         remindersApiProvider.overrideWithValue(_NoRemindersYet()),
         appDatabaseProvider.overrideWithValue(db),
+        clockProvider.overrideWithValue(() => _now),
       ],
       child: const BenkyoApp(),
     ),
@@ -140,6 +145,8 @@ void main() {
 
     final titles = shown!.cast<NativeMenuItem>().map((i) => i.title);
     expect(titles, [
+      'Focus on This Task',
+      null,
       'Mark as Completed',
       null,
       'Priority',
@@ -151,5 +158,48 @@ void main() {
     ]);
     expect(find.text('P1 · URGENT'), findsOneWidget);
     expect(find.text('P4 · LATER'), findsNothing);
+  }, variant: macOS);
+
+  testWidgets('focus on a task, sleep through the end, session is logged', (
+    tester,
+  ) async {
+    final scheduled = <Object?>[];
+    tester.binding.defaultBinaryMessenger
+      ..setMockMessageHandler('dev.flutter.pigeon.benkyo.MenuApi.show', (
+        _,
+      ) async {
+        return MenuApi.pigeonChannelCodec.encodeMessage(['focus']);
+      })
+      ..setMockMessageHandler(
+        'dev.flutter.pigeon.benkyo.NotificationsApi.schedule',
+        (data) async {
+          scheduled.add(
+            NotificationsApi.pigeonChannelCodec.decodeMessage(data),
+          );
+          return NotificationsApi.pigeonChannelCodec.encodeMessage([null]);
+        },
+      );
+    await _pumpApp(tester);
+    await tester.tap(find.bySemanticsLabel('Open tasks'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'Write docs !1');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    // Native menu → "Focus on This Task" starts a linked focus session.
+    await tester.tap(find.text('Write docs'), buttons: kSecondaryButton);
+    await tester.pump();
+    expect(find.text('Pause'), findsOneWidget);
+    expect(find.text('25:00'), findsOneWidget);
+    expect(scheduled, hasLength(1)); // phase-end notification booked
+
+    // The Mac sleeps past the end; the next tick catches up.
+    _now = _now.add(const Duration(minutes: 26));
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
+
+    expect(find.text('05:00'), findsOneWidget); // short break, stopped
+    expect(find.text('Start'), findsOneWidget);
+    expect(find.textContaining('1 session'), findsOneWidget); // logged
   }, variant: macOS);
 }

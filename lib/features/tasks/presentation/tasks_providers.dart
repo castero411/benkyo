@@ -9,12 +9,6 @@ final Provider<RemindersApi> remindersApiProvider = Provider(
   (_) => RemindersApi(),
 );
 
-final Provider<AppDatabase> appDatabaseProvider = Provider((ref) {
-  final db = AppDatabase();
-  ref.onDispose(db.close);
-  return db;
-});
-
 /// Reminders access. Asked for only when the user taps "Turn on".
 class RemindersSync extends AsyncNotifier<AccessStatus> {
   @override

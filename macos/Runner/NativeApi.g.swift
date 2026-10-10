@@ -547,3 +547,72 @@ class MenuApiSetup {
     }
   }
 }
+/// Generated protocol from Pigeon that represents a handler of messages from Flutter.
+protocol NotificationsApi {
+  /// Asks once; later calls return the saved answer without a prompt.
+  func requestPermission() async throws -> Bool
+  /// Delivers at [atMillis] (epoch ms) even if Benkyo is napping. Scheduling
+  /// the same [id] again replaces it.
+  func schedule(id: String, title: String, body: String, atMillis: Int64) throws
+  func cancel(id: String) throws
+}
+
+/// Generated setup class from Pigeon to handle messages through the `binaryMessenger`.
+class NotificationsApiSetup {
+  static var codec: FlutterStandardMessageCodec { NativeApiPigeonCodec.shared }
+  /// Sets up an instance of `NotificationsApi` to handle messages through the `binaryMessenger`.
+  static func setUp(binaryMessenger: FlutterBinaryMessenger, api: NotificationsApi?, messageChannelSuffix: String = "") {
+    let channelSuffix = messageChannelSuffix.count > 0 ? ".\(messageChannelSuffix)" : ""
+    /// Asks once; later calls return the saved answer without a prompt.
+    let requestPermissionChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.benkyo.NotificationsApi.requestPermission\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      requestPermissionChannel.setMessageHandler { _, reply in
+        Task { @MainActor in
+          do {
+            let result = try await api.requestPermission()
+            reply(wrapResult(result))
+          } catch {
+            reply(wrapError(error))
+          }
+        }
+      }
+    } else {
+      requestPermissionChannel.setMessageHandler(nil)
+    }
+    /// Delivers at [atMillis] (epoch ms) even if Benkyo is napping. Scheduling
+    /// the same [id] again replaces it.
+    let scheduleChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.benkyo.NotificationsApi.schedule\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      scheduleChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let idArg = args[0] as! String
+        let titleArg = args[1] as! String
+        let bodyArg = args[2] as! String
+        let atMillisArg = args[3] as! Int64
+        do {
+          try api.schedule(id: idArg, title: titleArg, body: bodyArg, atMillis: atMillisArg)
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      scheduleChannel.setMessageHandler(nil)
+    }
+    let cancelChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.benkyo.NotificationsApi.cancel\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      cancelChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let idArg = args[0] as! String
+        do {
+          try api.cancel(id: idArg)
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      cancelChannel.setMessageHandler(nil)
+    }
+  }
+}

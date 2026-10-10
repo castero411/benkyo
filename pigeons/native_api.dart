@@ -75,3 +75,16 @@ abstract class MenuApi {
   @async
   String? show(List<NativeMenuItem> items, double x, double y);
 }
+
+@HostApi()
+abstract class NotificationsApi {
+  /// Asks once; later calls return the saved answer without a prompt.
+  @async
+  bool requestPermission();
+
+  /// Delivers at [atMillis] (epoch ms) even if Benkyo is napping. Scheduling
+  /// the same [id] again replaces it.
+  void schedule(String id, String title, String body, int atMillis);
+
+  void cancel(String id);
+}

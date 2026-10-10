@@ -16,6 +16,7 @@ abstract final class Tokens {
   static const p2 = Color(0xFFF2B36B);
   static const p3 = Color(0xFF7FB5FF);
   static const p4 = Color(0xFFB4B0C4);
+  static Color priority(int p) => const {1: p1, 2: p2, 3: p3}[p] ?? p4;
 
   // Glass
   static const glassOpacity = 0.52;

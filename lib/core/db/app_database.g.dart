@@ -350,15 +350,358 @@ class LocalTasksCompanion extends UpdateCompanion<LocalTask> {
   }
 }
 
+class $SessionsTable extends Sessions with TableInfo<$SessionsTable, Session> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SessionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _phaseMeta = const VerificationMeta('phase');
+  @override
+  late final GeneratedColumn<String> phase = GeneratedColumn<String>(
+    'phase',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _taskIdMeta = const VerificationMeta('taskId');
+  @override
+  late final GeneratedColumn<String> taskId = GeneratedColumn<String>(
+    'task_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _startedAtMeta = const VerificationMeta(
+    'startedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> startedAt = GeneratedColumn<DateTime>(
+    'started_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _endedAtMeta = const VerificationMeta(
+    'endedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> endedAt = GeneratedColumn<DateTime>(
+    'ended_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, phase, taskId, startedAt, endedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'sessions';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Session> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('phase')) {
+      context.handle(
+        _phaseMeta,
+        phase.isAcceptableOrUnknown(data['phase']!, _phaseMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_phaseMeta);
+    }
+    if (data.containsKey('task_id')) {
+      context.handle(
+        _taskIdMeta,
+        taskId.isAcceptableOrUnknown(data['task_id']!, _taskIdMeta),
+      );
+    }
+    if (data.containsKey('started_at')) {
+      context.handle(
+        _startedAtMeta,
+        startedAt.isAcceptableOrUnknown(data['started_at']!, _startedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_startedAtMeta);
+    }
+    if (data.containsKey('ended_at')) {
+      context.handle(
+        _endedAtMeta,
+        endedAt.isAcceptableOrUnknown(data['ended_at']!, _endedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_endedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Session map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Session(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      phase: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}phase'],
+      )!,
+      taskId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}task_id'],
+      ),
+      startedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}started_at'],
+      )!,
+      endedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}ended_at'],
+      )!,
+    );
+  }
+
+  @override
+  $SessionsTable createAlias(String alias) {
+    return $SessionsTable(attachedDatabase, alias);
+  }
+}
+
+class Session extends DataClass implements Insertable<Session> {
+  final int id;
+  final String phase;
+  final String? taskId;
+  final DateTime startedAt;
+  final DateTime endedAt;
+  const Session({
+    required this.id,
+    required this.phase,
+    this.taskId,
+    required this.startedAt,
+    required this.endedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['phase'] = Variable<String>(phase);
+    if (!nullToAbsent || taskId != null) {
+      map['task_id'] = Variable<String>(taskId);
+    }
+    map['started_at'] = Variable<DateTime>(startedAt);
+    map['ended_at'] = Variable<DateTime>(endedAt);
+    return map;
+  }
+
+  SessionsCompanion toCompanion(bool nullToAbsent) {
+    return SessionsCompanion(
+      id: Value(id),
+      phase: Value(phase),
+      taskId: taskId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(taskId),
+      startedAt: Value(startedAt),
+      endedAt: Value(endedAt),
+    );
+  }
+
+  factory Session.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Session(
+      id: serializer.fromJson<int>(json['id']),
+      phase: serializer.fromJson<String>(json['phase']),
+      taskId: serializer.fromJson<String?>(json['taskId']),
+      startedAt: serializer.fromJson<DateTime>(json['startedAt']),
+      endedAt: serializer.fromJson<DateTime>(json['endedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'phase': serializer.toJson<String>(phase),
+      'taskId': serializer.toJson<String?>(taskId),
+      'startedAt': serializer.toJson<DateTime>(startedAt),
+      'endedAt': serializer.toJson<DateTime>(endedAt),
+    };
+  }
+
+  Session copyWith({
+    int? id,
+    String? phase,
+    Value<String?> taskId = const Value.absent(),
+    DateTime? startedAt,
+    DateTime? endedAt,
+  }) => Session(
+    id: id ?? this.id,
+    phase: phase ?? this.phase,
+    taskId: taskId.present ? taskId.value : this.taskId,
+    startedAt: startedAt ?? this.startedAt,
+    endedAt: endedAt ?? this.endedAt,
+  );
+  Session copyWithCompanion(SessionsCompanion data) {
+    return Session(
+      id: data.id.present ? data.id.value : this.id,
+      phase: data.phase.present ? data.phase.value : this.phase,
+      taskId: data.taskId.present ? data.taskId.value : this.taskId,
+      startedAt: data.startedAt.present ? data.startedAt.value : this.startedAt,
+      endedAt: data.endedAt.present ? data.endedAt.value : this.endedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Session(')
+          ..write('id: $id, ')
+          ..write('phase: $phase, ')
+          ..write('taskId: $taskId, ')
+          ..write('startedAt: $startedAt, ')
+          ..write('endedAt: $endedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, phase, taskId, startedAt, endedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Session &&
+          other.id == this.id &&
+          other.phase == this.phase &&
+          other.taskId == this.taskId &&
+          other.startedAt == this.startedAt &&
+          other.endedAt == this.endedAt);
+}
+
+class SessionsCompanion extends UpdateCompanion<Session> {
+  final Value<int> id;
+  final Value<String> phase;
+  final Value<String?> taskId;
+  final Value<DateTime> startedAt;
+  final Value<DateTime> endedAt;
+  const SessionsCompanion({
+    this.id = const Value.absent(),
+    this.phase = const Value.absent(),
+    this.taskId = const Value.absent(),
+    this.startedAt = const Value.absent(),
+    this.endedAt = const Value.absent(),
+  });
+  SessionsCompanion.insert({
+    this.id = const Value.absent(),
+    required String phase,
+    this.taskId = const Value.absent(),
+    required DateTime startedAt,
+    required DateTime endedAt,
+  }) : phase = Value(phase),
+       startedAt = Value(startedAt),
+       endedAt = Value(endedAt);
+  static Insertable<Session> custom({
+    Expression<int>? id,
+    Expression<String>? phase,
+    Expression<String>? taskId,
+    Expression<DateTime>? startedAt,
+    Expression<DateTime>? endedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (phase != null) 'phase': phase,
+      if (taskId != null) 'task_id': taskId,
+      if (startedAt != null) 'started_at': startedAt,
+      if (endedAt != null) 'ended_at': endedAt,
+    });
+  }
+
+  SessionsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? phase,
+    Value<String?>? taskId,
+    Value<DateTime>? startedAt,
+    Value<DateTime>? endedAt,
+  }) {
+    return SessionsCompanion(
+      id: id ?? this.id,
+      phase: phase ?? this.phase,
+      taskId: taskId ?? this.taskId,
+      startedAt: startedAt ?? this.startedAt,
+      endedAt: endedAt ?? this.endedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (phase.present) {
+      map['phase'] = Variable<String>(phase.value);
+    }
+    if (taskId.present) {
+      map['task_id'] = Variable<String>(taskId.value);
+    }
+    if (startedAt.present) {
+      map['started_at'] = Variable<DateTime>(startedAt.value);
+    }
+    if (endedAt.present) {
+      map['ended_at'] = Variable<DateTime>(endedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SessionsCompanion(')
+          ..write('id: $id, ')
+          ..write('phase: $phase, ')
+          ..write('taskId: $taskId, ')
+          ..write('startedAt: $startedAt, ')
+          ..write('endedAt: $endedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $LocalTasksTable localTasks = $LocalTasksTable(this);
+  late final $SessionsTable sessions = $SessionsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
-  List<DatabaseSchemaEntity> get allSchemaEntities => [localTasks];
+  List<DatabaseSchemaEntity> get allSchemaEntities => [localTasks, sessions];
 }
 
 typedef $$LocalTasksTableCreateCompanionBuilder = LocalTasksCompanion Function({
@@ -561,10 +904,207 @@ typedef $$LocalTasksTableProcessedTableManager =
       LocalTask,
       PrefetchHooks Function()
     >;
+typedef $$SessionsTableCreateCompanionBuilder = SessionsCompanion Function({
+  Value<int> id,
+  required String phase,
+  Value<String?> taskId,
+  required DateTime startedAt,
+  required DateTime endedAt,
+});
+typedef $$SessionsTableUpdateCompanionBuilder = SessionsCompanion Function({
+  Value<int> id,
+  Value<String> phase,
+  Value<String?> taskId,
+  Value<DateTime> startedAt,
+  Value<DateTime> endedAt,
+});
+
+class $$SessionsTableFilterComposer
+    extends Composer<_$AppDatabase, $SessionsTable> {
+  $$SessionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get phase => $composableBuilder(
+    column: $table.phase,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get taskId => $composableBuilder(
+    column: $table.taskId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get startedAt => $composableBuilder(
+    column: $table.startedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get endedAt => $composableBuilder(
+    column: $table.endedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$SessionsTableOrderingComposer
+    extends Composer<_$AppDatabase, $SessionsTable> {
+  $$SessionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get phase => $composableBuilder(
+    column: $table.phase,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get taskId => $composableBuilder(
+    column: $table.taskId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get startedAt => $composableBuilder(
+    column: $table.startedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get endedAt => $composableBuilder(
+    column: $table.endedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SessionsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SessionsTable> {
+  $$SessionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get phase =>
+      $composableBuilder(column: $table.phase, builder: (column) => column);
+
+  GeneratedColumn<String> get taskId =>
+      $composableBuilder(column: $table.taskId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get startedAt =>
+      $composableBuilder(column: $table.startedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get endedAt =>
+      $composableBuilder(column: $table.endedAt, builder: (column) => column);
+}
+
+class $$SessionsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SessionsTable,
+          Session,
+          $$SessionsTableFilterComposer,
+          $$SessionsTableOrderingComposer,
+          $$SessionsTableAnnotationComposer,
+          $$SessionsTableCreateCompanionBuilder,
+          $$SessionsTableUpdateCompanionBuilder,
+          (Session, BaseReferences<_$AppDatabase, $SessionsTable, Session>),
+          Session,
+          PrefetchHooks Function()
+        > {
+  $$SessionsTableTableManager(_$AppDatabase db, $SessionsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SessionsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SessionsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SessionsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> phase = const Value.absent(),
+                Value<String?> taskId = const Value.absent(),
+                Value<DateTime> startedAt = const Value.absent(),
+                Value<DateTime> endedAt = const Value.absent(),
+              }) => SessionsCompanion(
+                id: id,
+                phase: phase,
+                taskId: taskId,
+                startedAt: startedAt,
+                endedAt: endedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String phase,
+                Value<String?> taskId = const Value.absent(),
+                required DateTime startedAt,
+                required DateTime endedAt,
+              }) => SessionsCompanion.insert(
+                id: id,
+                phase: phase,
+                taskId: taskId,
+                startedAt: startedAt,
+                endedAt: endedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$SessionsTable, Session>(table),
+                  BaseReferences<_$AppDatabase, $SessionsTable, Session>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$SessionsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SessionsTable,
+      Session,
+      $$SessionsTableFilterComposer,
+      $$SessionsTableOrderingComposer,
+      $$SessionsTableAnnotationComposer,
+      $$SessionsTableCreateCompanionBuilder,
+      $$SessionsTableUpdateCompanionBuilder,
+      (Session, BaseReferences<_$AppDatabase, $SessionsTable, Session>),
+      Session,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
   $AppDatabaseManager(this._db);
   $$LocalTasksTableTableManager get localTasks =>
       $$LocalTasksTableTableManager(_db, _db.localTasks);
+  $$SessionsTableTableManager get sessions =>
+      $$SessionsTableTableManager(_db, _db.sessions);
 }

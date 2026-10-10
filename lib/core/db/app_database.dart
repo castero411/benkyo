@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 part 'app_database.g.dart';
 
@@ -12,11 +13,33 @@ class LocalTasks extends Table {
   DateTimeColumn get completedAt => dateTime().nullable()();
 }
 
-@DriftDatabase(tables: [LocalTasks])
+/// Finished timer phases. [phase] is a `Phase` name.
+class Sessions extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get phase => text()();
+  TextColumn get taskId => text().nullable()();
+  DateTimeColumn get startedAt => dateTime()();
+  DateTimeColumn get endedAt => dateTime()();
+}
+
+@DriftDatabase(tables: [LocalTasks, Sessions])
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])
     : super(executor ?? driftDatabase(name: 'benkyo'));
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onUpgrade: (m, from, to) async {
+      if (from < 2) await m.createTable(sessions);
+    },
+  );
 }
+
+final Provider<AppDatabase> appDatabaseProvider = Provider((ref) {
+  final db = AppDatabase();
+  ref.onDispose(db.close);
+  return db;
+});

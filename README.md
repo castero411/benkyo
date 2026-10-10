@@ -6,7 +6,7 @@ control, and a lofi scenery background in one window, so you never have to leave
 
 Built with Flutter, with a small native Swift layer for macOS-only features.
 
-> **Status:** early development. Phases 1–2 (skeleton, tasks + Reminders sync) are done. See [Roadmap](#roadmap) for
+> **Status:** early development. Phases 1–3 (skeleton, tasks + Reminders sync, timer) are done. See [Roadmap](#roadmap) for
 > what works today and what's coming. The full product plan lives in [PLAN.md](PLAN.md).
 
 ---
@@ -35,7 +35,7 @@ Built with Flutter, with a small native Swift layer for macOS-only features.
 | **Focus screen** | A single home screen: full-window scenery, a large timer on a glass card, and slide-in Tasks and Today panels. | ✅ Layout and panels |
 | **Zen mode** | Hides everything except the timer and puts the window into native macOS full screen. | ✅ |
 | **Keyboard-first** | Every main action has a shortcut, and each one is listed in the native menu bar. | ✅ Core shortcuts |
-| **Pomodoro timer** | Work, short break and long break phases (25 / 5 / 15 minutes, all configurable), with notifications and a session log. The timer stays correct across sleep. | Phase 3 |
+| **Pomodoro timer** | Focus, short break and long break (25 / 5 / 15 minutes, long break after 4 sessions), with macOS notifications, a session log, and "Focus on This Task". Stays correct across sleep. | ✅ |
 | **Tasks** | Priorities P1 to P4, quick-add (`!1` to `!4` in the title sets the priority), Today / All / Done views, rename, due today/tomorrow, delete with Undo. "Focus on this task" comes with the timer. | ✅ |
 | **Apple Reminders sync** | Tasks live in a "Benkyo" list in Apple Reminders, so they show up on iPhone and Apple Watch. If you deny access, tasks are kept in the app only. | ✅ |
 | **Calendar** | A Today panel showing your Calendar events, plus scheduling a task as an event. | Phase 6 |
@@ -96,13 +96,29 @@ To work on the native code, open `macos/Runner.xcworkspace` in Xcode.
 | `⌘D` | Show or hide Today | Menu bar: View |
 | `F` | Zen mode: turn on or off, entering or leaving full screen | In-app |
 | `Esc` | Leave a text field; otherwise close panels and leave zen mode | In-app |
-| `Space` | Start or pause the timer | In-app, coming in Phase 3 |
+| `Space` | Start or pause the timer | In-app (also in the Timer menu) |
+| `⌘R` | Reset the current phase | Menu bar: Timer |
+| `⌘→` | Skip to the next phase | Menu bar: Timer |
 | `⌘,` | Settings | Coming with Settings |
 
 **Why some shortcuts are in the menu bar and some are in the app:** `⌘` shortcuts are native
 menu items, so you can find them in the menus as usual on macOS. Single keys (`F`, `Esc`, `Space`) are
 handled inside the app instead. That way they **never trigger while you're typing** in a text field,
 since a menu-bar shortcut would catch those keys even mid-sentence.
+
+### Timer
+
+- Pick **Focus**, **Short break** or **Long break** with the tabs, then press **Start** (or `Space`).
+- After each focus session, you get a short break. Every 4th focus session is followed by a long
+  break. The dots show where you are in the cycle.
+- When a phase ends, macOS shows a notification (Benkyo asks for permission the first time you press
+  Start), and the next phase is loaded, ready to start.
+- **Focus on a task:** right-click a task (or `⋯`) and choose **Focus on This Task**. The task
+  appears under the timer with how many focus sessions it has received. Click it to open Tasks,
+  or click × to unlink it.
+- **Sleep-proof:** the timer stores when the phase *ends* (wall clock), not a countdown. Close the
+  lid mid-session and on wake it shows the right time, or moves on if the phase already ended.
+- Durations are fixed at 25 / 5 / 15 for now. They become editable with the Settings screen.
 
 ### Tasks
 
@@ -144,7 +160,7 @@ lib/
 │   └── theme/
 │       └── tokens.dart           # Design tokens + ThemeData (single source of the look)
 ├── core/
-│   ├── db/app_database.dart      # drift database (+ generated .g.dart)
+│   ├── db/app_database.dart      # drift database: local_tasks, sessions (+ generated .g.dart)
 │   ├── native/native_api.g.dart  # Pigeon-generated Dart side of the native bridge
 │   └── widgets/
 │       ├── glass_panel.dart      # Shared frosted-glass surface
@@ -154,6 +170,11 @@ lib/
     │   └── presentation/
     │       ├── focus_screen.dart # Home screen: timer card, edge tabs, panels
     │       └── focus_ui.dart     # Overlay state (panels, zen) + window channel
+    ├── timer/
+    │   ├── domain/pomodoro.dart  # Pure timer state + transitions (start/pause/tick/advance)
+    │   └── presentation/
+    │       ├── timer_controller.dart  # Ticker, notifications, session log, focus counts
+    │       └── timer_card.dart        # Phase tabs, clock, dots, controls, task chip
     └── tasks/
         ├── domain/task.dart      # Task model, priority mapping, quick-add parser, view filter
         ├── data/task_sources.dart       # TaskSource: Reminders + local (drift)
@@ -167,10 +188,12 @@ macos/Runner/
 ├── MainFlutterWindow.swift       # Window chrome, full-screen channel, bridge registration
 ├── RemindersBridge.swift         # EventKit implementation of RemindersApi
 ├── MenuBridge.swift              # Native NSMenu pop-ups (MenuApi)
+├── NotificationsBridge.swift     # Phase-end notifications (NotificationsApi)
 └── NativeApi.g.swift             # Pigeon-generated Swift side
 
 test/
 ├── features/tasks/task_test.dart # Priority mapping, quick-add parsing, view filters
+├── features/timer/pomodoro_test.dart # Cycle order, pause/resume, sleep, rounding, auto-start
 └── widget_test.dart              # Panels, shortcuts, zen ↔ full screen, quick-add flow
 ```
 
@@ -227,8 +250,14 @@ drift (SQLite): app-only data (session log, notes, scenes, task sort order)
 - **Apple Reminders holds the tasks themselves.** The app doesn't keep its own copy, so there is no
   two-way sync and no conflicts. The local database stores only what Reminders can't
   (manual sort order and links to notes and sessions).
-- **The timer is based on timestamps.** It stores `endsAt` and works out the remaining time from it,
-  so it stays accurate when the Mac sleeps. A one-second ticker only redraws the screen.
+- **The timer is based on timestamps.** It stores `endsAt` and works out the remaining time from
+  it, so it stays accurate when the Mac sleeps. A 250 ms ticker compares against the wall clock,
+  updates the screen only when the displayed second changes, and finishes the phase as soon as
+  `endsAt` has passed. The clock is injected (`clockProvider`), so tests can jump time.
+- **Notifications are booked when a phase starts**, for its end time, and cancelled on pause,
+  reset or skip. They fire on time even if macOS throttles the app in the background (App Nap).
+- **Database migrations:** `schemaVersion` 2 adds `sessions`. Bump the version and add an
+  `onUpgrade` step for every schema change, so existing users keep their data.
 
 ---
 
@@ -328,6 +357,14 @@ Menu content follows Apple's Human Interface Guidelines for menus:
 
 New Swift files must be added to the Runner target in Xcode (or with the `xcodeproj` gem).
 
+### Notifications bridge (Pigeon)
+
+`NotificationsApi` ([`NotificationsBridge.swift`](macos/Runner/NotificationsBridge.swift)):
+`requestPermission()`, `schedule(id, title, body, atMillis)` (a `UNTimeIntervalNotificationTrigger`;
+the same id replaces the previous one), and `cancel(id)`. The bridge also tells macOS to show the
+banner while Benkyo is frontmost. Failures are swallowed on purpose: a missing notification must
+never break the timer.
+
 Planned bridges: Calendar (EventKit) and Spotify (AppleScript plus the
 `com.spotify.client.PlaybackStateChanged` notification).
 
@@ -340,6 +377,7 @@ Benkyo asks for each permission only when you first use the feature that needs i
 | Permission | Needed for | Phase |
 |---|---|---|
 | Reminders (full access) | Syncing tasks with Apple Reminders | ✅ 2 |
+| Notifications | Phase-end banners and sound (asked on first Start) | ✅ 3 |
 | Calendars (full access) | The Today panel and scheduling tasks | 6 |
 | Automation → Spotify | Controlling the Spotify desktop app | 5 |
 | Files you choose (read-only) | Importing your own scenery images and videos | 4 |
@@ -383,7 +421,10 @@ Widget tests that use the database run drift in memory with `closeStreamsSynchro
 (otherwise drift leaves a timer pending that the test framework flags), and use a fake
 `RemindersApi` through a provider override.
 
-Planned tests: timer phase changes and reading Spotify links.
+The timer widget test fakes the clock and jumps it 26 minutes ahead ("sleep") to check that the
+phase ends, the break loads, and the session is logged against the task.
+
+Planned tests: reading Spotify links.
 
 ---
 
@@ -394,8 +435,8 @@ Planned tests: timer phase changes and reading Spotify links.
 | 0 | Design: Focus screen, panels, scenery picker, onboarding, tokens | ✅ |
 | 1 | Skeleton: lints, tokens and theme, window chrome, menu bar, shortcuts, zen full screen | ✅ |
 | 2 | drift and Pigeon setup, tasks with Apple Reminders sync, local-only fallback | ✅ |
-| 3 | Timer, notifications, session log | Next |
-| 4 | Scenery: built-in scenes, importing your own, video, dim and blur | |
+| 3 | Timer, notifications, session log | ✅ |
+| 4 | Scenery: built-in scenes, importing your own, video, dim and blur | Next |
 | 5 | Spotify through AppleScript (free and Premium), playlist presets, pasting a link | |
 | 6 | Calendar Today panel, scheduling a task | |
 | 7 | Notes | |

@@ -503,3 +503,88 @@ class MenuApi {
     return pigeonVar_replyValue as String?;
   }
 }
+
+class NotificationsApi {
+  /// Constructor for [NotificationsApi]. The [binaryMessenger] named argument is
+  /// available for dependency injection. If it is left null, the default
+  /// BinaryMessenger will be used which routes to the host platform.
+  NotificationsApi({
+    BinaryMessenger? binaryMessenger,
+    String messageChannelSuffix = '',
+  }) : pigeonVar_binaryMessenger = binaryMessenger,
+       pigeonVar_messageChannelSuffix = messageChannelSuffix.isNotEmpty
+           ? '.$messageChannelSuffix'
+           : '';
+
+  final BinaryMessenger? pigeonVar_binaryMessenger;
+  static const MessageCodec<Object?> pigeonChannelCodec = _PigeonCodec();
+
+  final String pigeonVar_messageChannelSuffix;
+
+  /// Asks once; later calls return the saved answer without a prompt.
+  Future<bool> requestPermission() async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.benkyo.NotificationsApi.requestPermission$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
+    return pigeonVar_replyValue! as bool;
+  }
+
+  /// Delivers at [atMillis] (epoch ms) even if Benkyo is napping. Scheduling
+  /// the same [id] again replaces it.
+  Future<void> schedule(
+    String id,
+    String title,
+    String body,
+    int atMillis,
+  ) async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.benkyo.NotificationsApi.schedule$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[id, title, body, atMillis],
+    );
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: true,
+    );
+  }
+
+  Future<void> cancel(String id) async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.benkyo.NotificationsApi.cancel$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[id],
+    );
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: true,
+    );
+  }
+}

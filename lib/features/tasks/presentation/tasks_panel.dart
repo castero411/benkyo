@@ -6,17 +6,11 @@ import 'package:benkyo/core/widgets/glass_panel.dart';
 import 'package:benkyo/core/widgets/platform_menu.dart';
 import 'package:benkyo/features/tasks/domain/task.dart';
 import 'package:benkyo/features/tasks/presentation/tasks_providers.dart';
+import 'package:benkyo/features/timer/presentation/timer_controller.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-const Map<int, Color> _priorityColors = {
-  1: Tokens.p1,
-  2: Tokens.p2,
-  3: Tokens.p3,
-  4: Tokens.p4,
-};
 
 class TasksPanel extends ConsumerWidget {
   const TasksPanel({required this.onClose, super.key});
@@ -266,7 +260,7 @@ class _GroupHeader extends StatelessWidget {
     child: Text(
       'P$priority · ${priorityLabels[priority]!.toUpperCase()}',
       style: Theme.of(context).textTheme.labelSmall
-          ?.copyWith(color: _priorityColors[priority]),
+          ?.copyWith(color: Tokens.priority(priority)),
     ),
   );
 }
@@ -336,6 +330,10 @@ class _TaskRowState extends ConsumerState<_TaskRow> {
     final due = task.due;
     final dueDay = due == null ? null : DateTime(due.year, due.month, due.day);
     final id = await showPlatformMenu(context, position, [
+      if (!task.done) ...[
+        const MenuEntry('Focus on This Task', id: 'focus'),
+        const MenuEntry.separator(),
+      ],
       MenuEntry(
         task.done ? 'Mark as Not Completed' : 'Mark as Completed',
         id: 'toggle',
@@ -368,6 +366,8 @@ class _TaskRowState extends ConsumerState<_TaskRow> {
     ]);
     if (!mounted || id == null) return;
     switch (id) {
+      case 'focus':
+        ref.read(timerProvider.notifier).focusOn(task.id!);
       case 'toggle':
         await _toggleDone();
       case 'today':
@@ -392,7 +392,7 @@ class _TaskRowState extends ConsumerState<_TaskRow> {
 
   @override
   Widget build(BuildContext context) {
-    final color = _priorityColors[task.priority]!;
+    final color = Tokens.priority(task.priority);
     final text = Theme.of(context).textTheme;
     final due = task.due;
 

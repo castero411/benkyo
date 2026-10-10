@@ -48,6 +48,7 @@ class MainFlutterWindow: NSWindow {
       binaryMessenger: messenger, api: RemindersBridge(binaryMessenger: messenger))
     MenuApiSetup.setUp(
       binaryMessenger: messenger, api: MenuBridge(view: flutterViewController.view))
+    NotificationsApiSetup.setUp(binaryMessenger: messenger, api: NotificationsBridge())
 
     RegisterGeneratedPlugins(registry: flutterViewController)
 

@@ -2,6 +2,7 @@ import 'package:benkyo/app/theme/tokens.dart';
 import 'package:benkyo/features/focus/presentation/focus_screen.dart';
 import 'package:benkyo/features/focus/presentation/focus_ui.dart';
 import 'package:benkyo/features/tasks/presentation/tasks_providers.dart';
+import 'package:benkyo/features/timer/presentation/timer_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,6 +13,8 @@ class BenkyoApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final ui = ref.read(focusUiProvider.notifier);
+    final timer = ref.read(timerProvider.notifier);
+    final running = ref.watch(timerProvider.select((s) => s.running));
 
     // ⌘ shortcuts live in the native menu bar so they are discoverable.
     // Bare keys (F, Esc) are handled in-app so they never fire while typing.
@@ -56,6 +59,32 @@ class BenkyoApp extends ConsumerWidget {
           ],
         ),
         PlatformMenu(
+          label: 'Timer',
+          menus: [
+            // Space also toggles, but only in-app so it never eats typing.
+            PlatformMenuItem(
+              label: running ? 'Pause' : 'Start',
+              onSelected: timer.toggle,
+            ),
+            PlatformMenuItem(
+              label: 'Reset',
+              shortcut: const SingleActivator(
+                LogicalKeyboardKey.keyR,
+                meta: true,
+              ),
+              onSelected: timer.reset,
+            ),
+            PlatformMenuItem(
+              label: 'Skip to Next Phase',
+              shortcut: const SingleActivator(
+                LogicalKeyboardKey.arrowRight,
+                meta: true,
+              ),
+              onSelected: timer.skip,
+            ),
+          ],
+        ),
+        PlatformMenu(
           label: 'View',
           menus: [
             PlatformMenuItem(
@@ -95,14 +124,14 @@ class BenkyoApp extends ConsumerWidget {
         theme: buildTheme(),
         home: Focus(
           autofocus: true,
-          onKeyEvent: (_, event) => _onKey(event, ui),
+          onKeyEvent: (_, event) => _onKey(event, ui, timer),
           child: const FocusScreen(),
         ),
       ),
     );
   }
 
-  KeyEventResult _onKey(KeyEvent event, FocusUi ui) {
+  KeyEventResult _onKey(KeyEvent event, FocusUi ui, TimerController timer) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
     if (_isTyping) {
       // Esc leaves the text field; every other key belongs to it.
@@ -114,6 +143,8 @@ class BenkyoApp extends ConsumerWidget {
     }
     if (HardwareKeyboard.instance.isMetaPressed) return KeyEventResult.ignored;
     switch (event.logicalKey) {
+      case LogicalKeyboardKey.space:
+        timer.toggle();
       case LogicalKeyboardKey.keyF:
         ui.toggleZen();
       case LogicalKeyboardKey.escape:
