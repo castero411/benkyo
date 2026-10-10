@@ -2,6 +2,8 @@ import 'package:benkyo/app/app.dart';
 import 'package:benkyo/core/db/app_database.dart';
 import 'package:benkyo/core/native/native_api.g.dart';
 import 'package:benkyo/features/focus/presentation/focus_ui.dart';
+import 'package:benkyo/features/scenery/domain/scene.dart';
+import 'package:benkyo/features/scenery/presentation/scenery_providers.dart';
 import 'package:benkyo/features/tasks/presentation/tasks_providers.dart';
 import 'package:benkyo/features/timer/presentation/timer_controller.dart';
 import 'package:drift/drift.dart' show DatabaseConnection;
@@ -47,13 +49,13 @@ Future<void> _pumpApp(WidgetTester tester) async {
 void main() {
   final macOS = TargetPlatformVariant.only(TargetPlatform.macOS);
 
-  testWidgets('edge tab opens Tasks, Esc closes, F toggles zen + full screen', (
+  testWidgets('edge tab opens Tasks, Esc closes, F toggles full screen', (
     tester,
   ) async {
-    final fullScreen = <Object?>[];
+    final calls = <String>[];
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
       windowChannel,
-      (call) async => fullScreen.add(call.arguments),
+      (call) async => calls.add(call.method),
     );
     await _pumpApp(tester);
 
@@ -68,33 +70,12 @@ void main() {
     await tester.pumpAndSettle();
     expect(tasksLeft(), lessThan(0));
 
-    double zenOpacity() => tester
-        .widget<AnimatedOpacity>(
-          find
-              .ancestor(
-                of: find.byTooltip('Zen mode (F)'),
-                matching: find.byType(AnimatedOpacity),
-              )
-              .first,
-        )
-        .opacity;
-
-    expect(zenOpacity(), 1);
+    // Zen mode is plain native full screen; nothing in the UI hides.
     await tester.sendKeyEvent(LogicalKeyboardKey.keyF);
+    await tester.tap(find.byTooltip('Zen mode: full screen (F)'));
     await tester.pumpAndSettle();
-    expect(zenOpacity(), 0);
-    expect(fullScreen, [true]);
-
-    // Leaving full screen natively also leaves zen.
-    await tester.binding.defaultBinaryMessenger.handlePlatformMessage(
-      windowChannel.name,
-      windowChannel.codec.encodeMethodCall(
-        const MethodCall('didExitFullScreen'),
-      ),
-      (_) {},
-    );
-    await tester.pumpAndSettle();
-    expect(zenOpacity(), 1);
+    expect(calls, ['toggleFullScreen', 'toggleFullScreen']);
+    expect(find.byTooltip('Scenery (⌘E)'), findsOneWidget);
   }, variant: macOS);
 
   testWidgets('quick-add saves a prioritized task; F types while focused', (
@@ -201,5 +182,46 @@ void main() {
     expect(find.text('05:00'), findsOneWidget); // short break, stopped
     expect(find.text('Start'), findsOneWidget);
     expect(find.textContaining('1 session'), findsOneWidget); // logged
+  }, variant: macOS);
+
+  testWidgets('pick a scene in the sheet; it rotates with the timer', (
+    tester,
+  ) async {
+    await _pumpApp(tester);
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(BenkyoApp)),
+    );
+    String? currentId() => container.read(currentSceneProvider)?.id;
+    await tester.pumpAndSettle();
+    expect(currentId(), builtInScenes.first.id);
+
+    await tester.tap(find.byTooltip('Scenery (⌘E)'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.bySemanticsLabel('Golden hour'));
+    await tester.pumpAndSettle();
+    expect(currentId(), 'builtin:golden-hour');
+
+    await tester.tap(find.text('Change scene each phase'));
+    // The same button (and ⌘E) closes it instead of stacking another.
+    await tester.tap(find.byTooltip('Scenery (⌘E)'), warnIfMissed: false);
+    await tester.pumpAndSettle();
+    expect(find.text('Scenery'), findsNothing);
+    await tester.tap(find.byTooltip('Scenery (⌘E)'));
+    await tester.pumpAndSettle();
+    expect(find.text('Scenery'), findsOneWidget);
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape); // Esc also closes
+    await tester.pumpAndSettle();
+    expect(find.text('Scenery'), findsNothing);
+
+    await tester.tap(find.byTooltip('Skip to next phase (⌘→)'));
+    await tester.pumpAndSettle();
+    expect(currentId(), nextSceneId(builtInScenes, 'builtin:golden-hour'));
+
+    // Choices survive a restart: they're in the database.
+    final db = container.read(appDatabaseProvider);
+    expect(await db.prefsWithPrefix('scene.'), {
+      'scene.current': nextSceneId(builtInScenes, 'builtin:golden-hour'),
+      'scene.rotate': 'true',
+    });
   }, variant: macOS);
 }

@@ -22,18 +22,45 @@ class Sessions extends Table {
   DateTimeColumn get endedAt => dateTime()();
 }
 
-@DriftDatabase(tables: [LocalTasks, Sessions])
+/// Scenery the user imported, copied into Application Support/scenes.
+class UserScenes extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text()();
+
+  /// Absolute path of the copy (a video's poster sits next to it + ".jpg").
+  TextColumn get path => text()();
+  BoolColumn get isVideo => boolean()();
+  DateTimeColumn get addedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// Small app settings as key → value text.
+class Prefs extends Table {
+  TextColumn get key => text()();
+  TextColumn get value => text()();
+
+  @override
+  Set<Column> get primaryKey => {key};
+}
+
+@DriftDatabase(tables: [LocalTasks, Sessions, UserScenes, Prefs])
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])
     : super(executor ?? driftDatabase(name: 'benkyo'));
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onUpgrade: (m, from, to) async {
       if (from < 2) await m.createTable(sessions);
+      if (from < 3) {
+        await m.createTable(userScenes);
+        await m.createTable(prefs);
+      }
     },
   );
 }
@@ -43,3 +70,16 @@ final Provider<AppDatabase> appDatabaseProvider = Provider((ref) {
   ref.onDispose(db.close);
   return db;
 });
+
+/// Key–value settings on top of the [Prefs] table.
+extension PrefsStore on AppDatabase {
+  Future<Map<String, String>> prefsWithPrefix(String prefix) async => {
+    for (final row in await (select(
+      prefs,
+    )..where((p) => p.key.like('$prefix%'))).get())
+      row.key: row.value,
+  };
+
+  Future<void> setPref(String key, String value) => into(prefs)
+      .insertOnConflictUpdate(PrefsCompanion.insert(key: key, value: value));
+}

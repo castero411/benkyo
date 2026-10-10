@@ -692,16 +692,585 @@ class SessionsCompanion extends UpdateCompanion<Session> {
   }
 }
 
+class $UserScenesTable extends UserScenes
+    with TableInfo<$UserScenesTable, UserScene> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $UserScenesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _pathMeta = const VerificationMeta('path');
+  @override
+  late final GeneratedColumn<String> path = GeneratedColumn<String>(
+    'path',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _isVideoMeta = const VerificationMeta(
+    'isVideo',
+  );
+  @override
+  late final GeneratedColumn<bool> isVideo = GeneratedColumn<bool>(
+    'is_video',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_video" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _addedAtMeta = const VerificationMeta(
+    'addedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> addedAt = GeneratedColumn<DateTime>(
+    'added_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, name, path, isVideo, addedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'user_scenes';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<UserScene> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('path')) {
+      context.handle(
+        _pathMeta,
+        path.isAcceptableOrUnknown(data['path']!, _pathMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_pathMeta);
+    }
+    if (data.containsKey('is_video')) {
+      context.handle(
+        _isVideoMeta,
+        isVideo.isAcceptableOrUnknown(data['is_video']!, _isVideoMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_isVideoMeta);
+    }
+    if (data.containsKey('added_at')) {
+      context.handle(
+        _addedAtMeta,
+        addedAt.isAcceptableOrUnknown(data['added_at']!, _addedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_addedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  UserScene map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return UserScene(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      path: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}path'],
+      )!,
+      isVideo: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_video'],
+      )!,
+      addedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}added_at'],
+      )!,
+    );
+  }
+
+  @override
+  $UserScenesTable createAlias(String alias) {
+    return $UserScenesTable(attachedDatabase, alias);
+  }
+}
+
+class UserScene extends DataClass implements Insertable<UserScene> {
+  final String id;
+  final String name;
+
+  /// Absolute path of the copy (a video's poster sits next to it + ".jpg").
+  final String path;
+  final bool isVideo;
+  final DateTime addedAt;
+  const UserScene({
+    required this.id,
+    required this.name,
+    required this.path,
+    required this.isVideo,
+    required this.addedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['name'] = Variable<String>(name);
+    map['path'] = Variable<String>(path);
+    map['is_video'] = Variable<bool>(isVideo);
+    map['added_at'] = Variable<DateTime>(addedAt);
+    return map;
+  }
+
+  UserScenesCompanion toCompanion(bool nullToAbsent) {
+    return UserScenesCompanion(
+      id: Value(id),
+      name: Value(name),
+      path: Value(path),
+      isVideo: Value(isVideo),
+      addedAt: Value(addedAt),
+    );
+  }
+
+  factory UserScene.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return UserScene(
+      id: serializer.fromJson<String>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      path: serializer.fromJson<String>(json['path']),
+      isVideo: serializer.fromJson<bool>(json['isVideo']),
+      addedAt: serializer.fromJson<DateTime>(json['addedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'name': serializer.toJson<String>(name),
+      'path': serializer.toJson<String>(path),
+      'isVideo': serializer.toJson<bool>(isVideo),
+      'addedAt': serializer.toJson<DateTime>(addedAt),
+    };
+  }
+
+  UserScene copyWith({
+    String? id,
+    String? name,
+    String? path,
+    bool? isVideo,
+    DateTime? addedAt,
+  }) => UserScene(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    path: path ?? this.path,
+    isVideo: isVideo ?? this.isVideo,
+    addedAt: addedAt ?? this.addedAt,
+  );
+  UserScene copyWithCompanion(UserScenesCompanion data) {
+    return UserScene(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      path: data.path.present ? data.path.value : this.path,
+      isVideo: data.isVideo.present ? data.isVideo.value : this.isVideo,
+      addedAt: data.addedAt.present ? data.addedAt.value : this.addedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('UserScene(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('path: $path, ')
+          ..write('isVideo: $isVideo, ')
+          ..write('addedAt: $addedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, name, path, isVideo, addedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is UserScene &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.path == this.path &&
+          other.isVideo == this.isVideo &&
+          other.addedAt == this.addedAt);
+}
+
+class UserScenesCompanion extends UpdateCompanion<UserScene> {
+  final Value<String> id;
+  final Value<String> name;
+  final Value<String> path;
+  final Value<bool> isVideo;
+  final Value<DateTime> addedAt;
+  final Value<int> rowid;
+  const UserScenesCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.path = const Value.absent(),
+    this.isVideo = const Value.absent(),
+    this.addedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  UserScenesCompanion.insert({
+    required String id,
+    required String name,
+    required String path,
+    required bool isVideo,
+    required DateTime addedAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       name = Value(name),
+       path = Value(path),
+       isVideo = Value(isVideo),
+       addedAt = Value(addedAt);
+  static Insertable<UserScene> custom({
+    Expression<String>? id,
+    Expression<String>? name,
+    Expression<String>? path,
+    Expression<bool>? isVideo,
+    Expression<DateTime>? addedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (path != null) 'path': path,
+      if (isVideo != null) 'is_video': isVideo,
+      if (addedAt != null) 'added_at': addedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  UserScenesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? name,
+    Value<String>? path,
+    Value<bool>? isVideo,
+    Value<DateTime>? addedAt,
+    Value<int>? rowid,
+  }) {
+    return UserScenesCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      path: path ?? this.path,
+      isVideo: isVideo ?? this.isVideo,
+      addedAt: addedAt ?? this.addedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (path.present) {
+      map['path'] = Variable<String>(path.value);
+    }
+    if (isVideo.present) {
+      map['is_video'] = Variable<bool>(isVideo.value);
+    }
+    if (addedAt.present) {
+      map['added_at'] = Variable<DateTime>(addedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('UserScenesCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('path: $path, ')
+          ..write('isVideo: $isVideo, ')
+          ..write('addedAt: $addedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $PrefsTable extends Prefs with TableInfo<$PrefsTable, Pref> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PrefsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _keyMeta = const VerificationMeta('key');
+  @override
+  late final GeneratedColumn<String> key = GeneratedColumn<String>(
+    'key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _valueMeta = const VerificationMeta('value');
+  @override
+  late final GeneratedColumn<String> value = GeneratedColumn<String>(
+    'value',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [key, value];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'prefs';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Pref> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('key')) {
+      context.handle(
+        _keyMeta,
+        key.isAcceptableOrUnknown(data['key']!, _keyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_keyMeta);
+    }
+    if (data.containsKey('value')) {
+      context.handle(
+        _valueMeta,
+        value.isAcceptableOrUnknown(data['value']!, _valueMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_valueMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {key};
+  @override
+  Pref map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Pref(
+      key: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}key'],
+      )!,
+      value: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}value'],
+      )!,
+    );
+  }
+
+  @override
+  $PrefsTable createAlias(String alias) {
+    return $PrefsTable(attachedDatabase, alias);
+  }
+}
+
+class Pref extends DataClass implements Insertable<Pref> {
+  final String key;
+  final String value;
+  const Pref({required this.key, required this.value});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['key'] = Variable<String>(key);
+    map['value'] = Variable<String>(value);
+    return map;
+  }
+
+  PrefsCompanion toCompanion(bool nullToAbsent) {
+    return PrefsCompanion(key: Value(key), value: Value(value));
+  }
+
+  factory Pref.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Pref(
+      key: serializer.fromJson<String>(json['key']),
+      value: serializer.fromJson<String>(json['value']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'key': serializer.toJson<String>(key),
+      'value': serializer.toJson<String>(value),
+    };
+  }
+
+  Pref copyWith({String? key, String? value}) =>
+      Pref(key: key ?? this.key, value: value ?? this.value);
+  Pref copyWithCompanion(PrefsCompanion data) {
+    return Pref(
+      key: data.key.present ? data.key.value : this.key,
+      value: data.value.present ? data.value.value : this.value,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Pref(')
+          ..write('key: $key, ')
+          ..write('value: $value')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(key, value);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Pref && other.key == this.key && other.value == this.value);
+}
+
+class PrefsCompanion extends UpdateCompanion<Pref> {
+  final Value<String> key;
+  final Value<String> value;
+  final Value<int> rowid;
+  const PrefsCompanion({
+    this.key = const Value.absent(),
+    this.value = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  PrefsCompanion.insert({
+    required String key,
+    required String value,
+    this.rowid = const Value.absent(),
+  }) : key = Value(key),
+       value = Value(value);
+  static Insertable<Pref> custom({
+    Expression<String>? key,
+    Expression<String>? value,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (key != null) 'key': key,
+      if (value != null) 'value': value,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  PrefsCompanion copyWith({
+    Value<String>? key,
+    Value<String>? value,
+    Value<int>? rowid,
+  }) {
+    return PrefsCompanion(
+      key: key ?? this.key,
+      value: value ?? this.value,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (key.present) {
+      map['key'] = Variable<String>(key.value);
+    }
+    if (value.present) {
+      map['value'] = Variable<String>(value.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PrefsCompanion(')
+          ..write('key: $key, ')
+          ..write('value: $value, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $LocalTasksTable localTasks = $LocalTasksTable(this);
   late final $SessionsTable sessions = $SessionsTable(this);
+  late final $UserScenesTable userScenes = $UserScenesTable(this);
+  late final $PrefsTable prefs = $PrefsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
-  List<DatabaseSchemaEntity> get allSchemaEntities => [localTasks, sessions];
+  List<DatabaseSchemaEntity> get allSchemaEntities => [
+    localTasks,
+    sessions,
+    userScenes,
+    prefs,
+  ];
 }
 
 typedef $$LocalTasksTableCreateCompanionBuilder = LocalTasksCompanion Function({
@@ -1099,6 +1668,343 @@ typedef $$SessionsTableProcessedTableManager =
       Session,
       PrefetchHooks Function()
     >;
+typedef $$UserScenesTableCreateCompanionBuilder = UserScenesCompanion Function({
+  required String id,
+  required String name,
+  required String path,
+  required bool isVideo,
+  required DateTime addedAt,
+  Value<int> rowid,
+});
+typedef $$UserScenesTableUpdateCompanionBuilder = UserScenesCompanion Function({
+  Value<String> id,
+  Value<String> name,
+  Value<String> path,
+  Value<bool> isVideo,
+  Value<DateTime> addedAt,
+  Value<int> rowid,
+});
+
+class $$UserScenesTableFilterComposer
+    extends Composer<_$AppDatabase, $UserScenesTable> {
+  $$UserScenesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get path => $composableBuilder(
+    column: $table.path,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isVideo => $composableBuilder(
+    column: $table.isVideo,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get addedAt => $composableBuilder(
+    column: $table.addedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$UserScenesTableOrderingComposer
+    extends Composer<_$AppDatabase, $UserScenesTable> {
+  $$UserScenesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get path => $composableBuilder(
+    column: $table.path,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isVideo => $composableBuilder(
+    column: $table.isVideo,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get addedAt => $composableBuilder(
+    column: $table.addedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$UserScenesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $UserScenesTable> {
+  $$UserScenesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get path =>
+      $composableBuilder(column: $table.path, builder: (column) => column);
+
+  GeneratedColumn<bool> get isVideo =>
+      $composableBuilder(column: $table.isVideo, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get addedAt =>
+      $composableBuilder(column: $table.addedAt, builder: (column) => column);
+}
+
+class $$UserScenesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $UserScenesTable,
+          UserScene,
+          $$UserScenesTableFilterComposer,
+          $$UserScenesTableOrderingComposer,
+          $$UserScenesTableAnnotationComposer,
+          $$UserScenesTableCreateCompanionBuilder,
+          $$UserScenesTableUpdateCompanionBuilder,
+          (
+            UserScene,
+            BaseReferences<_$AppDatabase, $UserScenesTable, UserScene>,
+          ),
+          UserScene,
+          PrefetchHooks Function()
+        > {
+  $$UserScenesTableTableManager(_$AppDatabase db, $UserScenesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$UserScenesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$UserScenesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$UserScenesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> path = const Value.absent(),
+                Value<bool> isVideo = const Value.absent(),
+                Value<DateTime> addedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => UserScenesCompanion(
+                id: id,
+                name: name,
+                path: path,
+                isVideo: isVideo,
+                addedAt: addedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String name,
+                required String path,
+                required bool isVideo,
+                required DateTime addedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => UserScenesCompanion.insert(
+                id: id,
+                name: name,
+                path: path,
+                isVideo: isVideo,
+                addedAt: addedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$UserScenesTable, UserScene>(table),
+                  BaseReferences<_$AppDatabase, $UserScenesTable, UserScene>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$UserScenesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $UserScenesTable,
+      UserScene,
+      $$UserScenesTableFilterComposer,
+      $$UserScenesTableOrderingComposer,
+      $$UserScenesTableAnnotationComposer,
+      $$UserScenesTableCreateCompanionBuilder,
+      $$UserScenesTableUpdateCompanionBuilder,
+      (UserScene, BaseReferences<_$AppDatabase, $UserScenesTable, UserScene>),
+      UserScene,
+      PrefetchHooks Function()
+    >;
+typedef $$PrefsTableCreateCompanionBuilder = PrefsCompanion Function({
+  required String key,
+  required String value,
+  Value<int> rowid,
+});
+typedef $$PrefsTableUpdateCompanionBuilder = PrefsCompanion Function({
+  Value<String> key,
+  Value<String> value,
+  Value<int> rowid,
+});
+
+class $$PrefsTableFilterComposer extends Composer<_$AppDatabase, $PrefsTable> {
+  $$PrefsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get key => $composableBuilder(
+    column: $table.key,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get value => $composableBuilder(
+    column: $table.value,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$PrefsTableOrderingComposer
+    extends Composer<_$AppDatabase, $PrefsTable> {
+  $$PrefsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get key => $composableBuilder(
+    column: $table.key,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get value => $composableBuilder(
+    column: $table.value,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$PrefsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PrefsTable> {
+  $$PrefsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get key =>
+      $composableBuilder(column: $table.key, builder: (column) => column);
+
+  GeneratedColumn<String> get value =>
+      $composableBuilder(column: $table.value, builder: (column) => column);
+}
+
+class $$PrefsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $PrefsTable,
+          Pref,
+          $$PrefsTableFilterComposer,
+          $$PrefsTableOrderingComposer,
+          $$PrefsTableAnnotationComposer,
+          $$PrefsTableCreateCompanionBuilder,
+          $$PrefsTableUpdateCompanionBuilder,
+          (Pref, BaseReferences<_$AppDatabase, $PrefsTable, Pref>),
+          Pref,
+          PrefetchHooks Function()
+        > {
+  $$PrefsTableTableManager(_$AppDatabase db, $PrefsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PrefsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PrefsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PrefsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> key = const Value.absent(),
+            Value<String> value = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) => PrefsCompanion(key: key, value: value, rowid: rowid),
+          createCompanionCallback: ({
+            required String key,
+            required String value,
+            Value<int> rowid = const Value.absent(),
+          }) => PrefsCompanion.insert(key: key, value: value, rowid: rowid),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$PrefsTable, Pref>(table),
+                  BaseReferences<_$AppDatabase, $PrefsTable, Pref>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$PrefsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $PrefsTable,
+      Pref,
+      $$PrefsTableFilterComposer,
+      $$PrefsTableOrderingComposer,
+      $$PrefsTableAnnotationComposer,
+      $$PrefsTableCreateCompanionBuilder,
+      $$PrefsTableUpdateCompanionBuilder,
+      (Pref, BaseReferences<_$AppDatabase, $PrefsTable, Pref>),
+      Pref,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -1107,4 +2013,8 @@ class $AppDatabaseManager {
       $$LocalTasksTableTableManager(_db, _db.localTasks);
   $$SessionsTableTableManager get sessions =>
       $$SessionsTableTableManager(_db, _db.sessions);
+  $$UserScenesTableTableManager get userScenes =>
+      $$UserScenesTableTableManager(_db, _db.userScenes);
+  $$PrefsTableTableManager get prefs =>
+      $$PrefsTableTableManager(_db, _db.prefs);
 }

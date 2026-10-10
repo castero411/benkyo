@@ -6,7 +6,7 @@ control, and a lofi scenery background in one window, so you never have to leave
 
 Built with Flutter, with a small native Swift layer for macOS-only features.
 
-> **Status:** early development. Phases 1–3 (skeleton, tasks + Reminders sync, timer) are done. See [Roadmap](#roadmap) for
+> **Status:** early development. Phases 1–4 (skeleton, tasks + Reminders sync, timer, scenery) are done. See [Roadmap](#roadmap) for
 > what works today and what's coming. The full product plan lives in [PLAN.md](PLAN.md).
 
 ---
@@ -33,13 +33,13 @@ Built with Flutter, with a small native Swift layer for macOS-only features.
 | Feature | What it does | Status |
 |---|---|---|
 | **Focus screen** | A single home screen: full-window scenery, a large timer on a glass card, and slide-in Tasks and Today panels. | ✅ Layout and panels |
-| **Zen mode** | Hides everything except the timer and puts the window into native macOS full screen. | ✅ |
+| **Zen mode** | Native macOS full screen (same as View → Enter Full Screen). | ✅ |
 | **Keyboard-first** | Every main action has a shortcut, and each one is listed in the native menu bar. | ✅ Core shortcuts |
 | **Pomodoro timer** | Focus, short break and long break (25 / 5 / 15 minutes, long break after 4 sessions), with macOS notifications, a session log, and "Focus on This Task". Stays correct across sleep. | ✅ |
 | **Tasks** | Priorities P1 to P4, quick-add (`!1` to `!4` in the title sets the priority), Today / All / Done views, rename, due today/tomorrow, delete with Undo. "Focus on this task" comes with the timer. | ✅ |
 | **Apple Reminders sync** | Tasks live in a "Benkyo" list in Apple Reminders, so they show up on iPhone and Apple Watch. If you deny access, tasks are kept in the app only. | ✅ |
 | **Calendar** | A Today panel showing your Calendar events, plus scheduling a task as an event. | Phase 6 |
-| **Scenery** | Built-in, openly licensed lofi images and video loops. You can add your own images and videos, with dim and blur controls. | Phase 4 |
+| **Scenery** | 6 built-in lofi photos + 2 rain video loops (openly licensed, credited). Add your own photos (incl. iPhone HEIC) and videos by picker or drag & drop. Per-scene dim and blur; optional change each phase. | ✅ |
 | **Spotify** | Play, pause, skip, see the current track and choose playlists. Works with **free and Premium** accounts. | Phase 5 |
 | **Notes** | Markdown notes, optionally linked to a task or a focus session. | Phase 7 |
 
@@ -94,11 +94,13 @@ To work on the native code, open `macos/Runner.xcworkspace` in Xcode.
 | `⌘N` | New task (opens Tasks and focuses the quick-add field) | Menu bar: Task |
 | `⌘T` | Show or hide Tasks | Menu bar: View |
 | `⌘D` | Show or hide Today | Menu bar: View |
-| `F` | Zen mode: turn on or off, entering or leaving full screen | In-app |
-| `Esc` | Leave a text field; otherwise close panels and leave zen mode | In-app |
+| `F` | Zen mode: enter or exit full screen | In-app |
+| `⌃⌘F` | Enter / Exit Full Screen (standard macOS item) | Menu bar: View |
+| `Esc` | Leave a text field; otherwise close panels or the Scenery sheet | In-app |
 | `Space` | Start or pause the timer | In-app (also in the Timer menu) |
 | `⌘R` | Reset the current phase | Menu bar: Timer |
 | `⌘→` | Skip to the next phase | Menu bar: Timer |
+| `⌘E` | Open or close Scenery | Menu bar: View |
 | `⌘,` | Settings | Coming with Settings |
 
 **Why some shortcuts are in the menu bar and some are in the app:** `⌘` shortcuts are native
@@ -120,6 +122,22 @@ since a menu-bar shortcut would catch those keys even mid-sentence.
   lid mid-session and on wake it shows the right time, or moves on if the phase already ended.
 - Durations are fixed at 25 / 5 / 15 for now. They become editable with the Settings screen.
 
+### Scenery
+
+- Open **Scenery** with the landscape button (top right) or `⌘E`; the same button or `⌘E`
+  closes it again (as do `Esc` and clicking outside). Click a scene to switch; it cross-fades in.
+- **Adjust** (per scene, remembered): **Dim** darkens the scene so the timer stays readable,
+  **Blur** softens busy photos. **Change scene each phase** moves to the next scene whenever the
+  timer moves to a new phase.
+- **Add your own:** *Add Scenery…* in the sheet, or drop files anywhere on the window. JPEG, PNG,
+  WebP, HEIC/HEIF and TIFF photos (HEIC/TIFF are converted to JPEG), and MP4/MOV/M4V videos.
+  Files are copied into Benkyo, so moving or deleting the originals doesn't break them.
+- **Remove** your own scene: right-click it → *Remove from Benkyo* (Undo available). The copy is
+  deleted only once Undo is no longer possible.
+- Videos play muted and looped, and pause while Benkyo is hidden or minimized.
+- Built-in media credits: [`assets/scenery/ATTRIBUTION.md`](assets/scenery/ATTRIBUTION.md), also
+  shown in the sheet for the selected scene.
+
 ### Tasks
 
 - **Quick-add:** type a title and press Enter. Add `!1` to `!4` anywhere to set the priority
@@ -135,15 +153,11 @@ since a menu-bar shortcut would catch those keys even mid-sentence.
   on, changes made anywhere (Reminders.app, iPhone, Watch) appear in Benkyo straight away. If
   access is denied, tasks stay on this Mac and the card links to System Settings.
 
-### Zen mode and full screen
+### Zen mode (full screen)
 
-Press `F` and Benkyo hides everything except the timer and enters native full screen. Press `F` or
-`Esc` again to come back.
-
-- If you were **already** in full screen before turning on zen mode, leaving zen keeps you in full
-  screen. Benkyo only exits a full screen that it entered itself.
-- If you leave full screen yourself (with the green button or `⌃⌘F`), zen mode turns off too, so the
-  controls never stay hidden without a way back.
+Press `F` (or the full-screen button at the top right) to enter native macOS full screen, and
+again to exit. It's exactly the standard **View → Enter Full Screen** (`⌃⌘F`); nothing in the
+interface hides.
 
 ---
 
@@ -160,7 +174,7 @@ lib/
 │   └── theme/
 │       └── tokens.dart           # Design tokens + ThemeData (single source of the look)
 ├── core/
-│   ├── db/app_database.dart      # drift database: local_tasks, sessions (+ generated .g.dart)
+│   ├── db/app_database.dart      # drift: local_tasks, sessions, user_scenes, prefs (+ .g.dart)
 │   ├── native/native_api.g.dart  # Pigeon-generated Dart side of the native bridge
 │   └── widgets/
 │       ├── glass_panel.dart      # Shared frosted-glass surface
@@ -169,7 +183,14 @@ lib/
     ├── focus/
     │   └── presentation/
     │       ├── focus_screen.dart # Home screen: timer card, edge tabs, panels
-    │       └── focus_ui.dart     # Overlay state (panels, zen) + window channel
+    │       └── focus_ui.dart     # Panel state + full-screen channel
+    ├── scenery/
+    │   ├── domain/scene.dart     # Scene model, built-in catalog + credits, import rules, rotation
+    │   └── presentation/
+    │       ├── scenery_providers.dart   # Current scene, dim/blur, rotate, import/remove
+    │       ├── scenery_background.dart  # Full-window image/video, cross-fade, dim, blur
+    │       ├── scenery_sheet.dart       # Picker: grids, Add Scenery…, Adjust, credits
+    │       └── scenery_drop_target.dart # Drop files anywhere to import
     ├── timer/
     │   ├── domain/pomodoro.dart  # Pure timer state + transitions (start/pause/tick/advance)
     │   └── presentation/
@@ -184,17 +205,21 @@ lib/
 
 pigeons/native_api.dart           # Typed Dart ↔ Swift contract (source of truth)
 
+assets/scenery/                   # Built-in photos, video loops + posters, ATTRIBUTION.md
+
 macos/Runner/
 ├── MainFlutterWindow.swift       # Window chrome, full-screen channel, bridge registration
 ├── RemindersBridge.swift         # EventKit implementation of RemindersApi
 ├── MenuBridge.swift              # Native NSMenu pop-ups (MenuApi)
 ├── NotificationsBridge.swift     # Phase-end notifications (NotificationsApi)
+├── SceneryBridge.swift           # HEIC→JPEG, video poster frames (SceneryApi)
 └── NativeApi.g.swift             # Pigeon-generated Swift side
 
 test/
 ├── features/tasks/task_test.dart # Priority mapping, quick-add parsing, view filters
 ├── features/timer/pomodoro_test.dart # Cycle order, pause/resume, sleep, rounding, auto-start
-└── widget_test.dart              # Panels, shortcuts, zen ↔ full screen, quick-add flow
+├── features/scenery/scene_test.dart  # Built-in files + credits exist, import kinds, rotation
+└── widget_test.dart              # Panels, shortcuts, full screen, sheet toggle, flows
 ```
 
 As more features are added (see [PLAN.md](PLAN.md)), each one follows the same shape:
@@ -219,10 +244,7 @@ The app uses [`flutter_riverpod`](https://pub.dev/packages/flutter_riverpod) wit
 classes, and no code generation yet.
 
 - **State is immutable.** Simple state uses Dart records. For example, `FocusUiState` is
-  `({bool tasksOpen, bool todayOpen, bool zen})`.
-- **Side effects run in one place.** For example, `FocusUi` uses `listenSelf` to react to its own
-  state changes: whenever `zen` flips, it tells the native window to enter or leave full screen. No
-  widget has to remember to do this.
+  `({bool tasksOpen, bool todayOpen})`.
 - **Tests replace dependencies through Riverpod overrides** instead of interfaces. An interface is
   added only when a feature really has two implementations (for example, tasks will have a Reminders
   source and a local-only source).
@@ -256,7 +278,9 @@ drift (SQLite): app-only data (session log, notes, scenes, task sort order)
   `endsAt` has passed. The clock is injected (`clockProvider`), so tests can jump time.
 - **Notifications are booked when a phase starts**, for its end time, and cancelled on pause,
   reset or skip. They fire on time even if macOS throttles the app in the background (App Nap).
-- **Database migrations:** `schemaVersion` 2 adds `sessions`. Bump the version and add an
+- **Settings** live in the `prefs` key–value table (`db.prefsWithPrefix`, `db.setPref`), e.g.
+  `scene.current`, `scene.rotate`, `scene.adjust.<id>` = `dim,blur`.
+- **Database migrations:** `schemaVersion` 2 adds `sessions`, 3 adds `user_scenes` and `prefs`. Bump the version and add an
   `onUpgrade` step for every schema change, so existing users keep their data.
 
 ---
@@ -312,10 +336,9 @@ Swift, so no extra package is needed:
 
 ### Window channel: `benkyo/window`
 
-| Direction | Method | Argument | Effect |
-|---|---|---|---|
-| Dart → Swift | `setFullScreen` | `bool` | Enters full screen, or leaves it only if zen mode entered it |
-| Swift → Dart | `didExitFullScreen` | none | The user left full screen natively, so zen mode turns off |
+| Direction | Method | Effect |
+|---|---|---|
+| Dart → Swift | `toggleFullScreen` | `NSWindow.toggleFullScreen`, the same as the green button or ⌃⌘F |
 
 ### Reminders bridge (Pigeon)
 
@@ -365,6 +388,13 @@ the same id replaces the previous one), and `cancel(id)`. The bridge also tells 
 banner while Benkyo is frontmost. Failures are swallowed on purpose: a missing notification must
 never break the timer.
 
+### Scenery bridge (Pigeon)
+
+`SceneryApi` ([`SceneryBridge.swift`](macos/Runner/SceneryBridge.swift)) uses the system codecs:
+`convertToJpeg(input, output)` (ImageIO, for HEIC/TIFF, which Flutter can't reliably decode) and
+`videoPoster(input, output)` (AVFoundation frame at 0.5 s, saved as `<video>.jpg`, used as the
+thumbnail and shown while the video loads).
+
 Planned bridges: Calendar (EventKit) and Spotify (AppleScript plus the
 `com.spotify.client.PlaybackStateChanged` notification).
 
@@ -380,7 +410,7 @@ Benkyo asks for each permission only when you first use the feature that needs i
 | Notifications | Phase-end banners and sound (asked on first Start) | ✅ 3 |
 | Calendars (full access) | The Today panel and scheduling tasks | 6 |
 | Automation → Spotify | Controlling the Spotify desktop app | 5 |
-| Files you choose (read-only) | Importing your own scenery images and videos | 4 |
+| Files you choose (read-only) | Importing your own scenery images and videos | ✅ 4 |
 | Network (outgoing) | Loading album artwork | 5 |
 
 The matching entitlements and `Info.plist` descriptions are added in the phase that introduces each
@@ -413,9 +443,9 @@ testWidgets('…', (tester) async { … },
 ```
 
 Native channels are replaced with mocks using
-`tester.binding.defaultBinaryMessenger.setMockMethodCallHandler`. The existing test covers
-opening and closing panels, the `Esc` and `F` keys, and keeping zen mode and full screen in sync in
-both directions.
+`tester.binding.defaultBinaryMessenger.setMockMethodCallHandler`. The tests cover opening and
+closing panels, `Esc`, `F` sending `toggleFullScreen`, and the Scenery sheet toggling instead of
+stacking.
 
 Widget tests that use the database run drift in memory with `closeStreamsSynchronously: true`
 (otherwise drift leaves a timer pending that the test framework flags), and use a fake
@@ -423,6 +453,10 @@ Widget tests that use the database run drift in memory with `closeStreamsSynchro
 
 The timer widget test fakes the clock and jumps it 26 minutes ahead ("sleep") to check that the
 phase ends, the break loads, and the session is logged against the task.
+
+The scenery widget test picks a scene in the sheet, turns on *Change scene each phase*, skips a
+timer phase, and checks the scene advanced and both choices were saved. Writing it caught two
+real layout bugs (an overflowing tile and a hidden list-tile highlight).
 
 Planned tests: reading Spotify links.
 
@@ -436,8 +470,8 @@ Planned tests: reading Spotify links.
 | 1 | Skeleton: lints, tokens and theme, window chrome, menu bar, shortcuts, zen full screen | ✅ |
 | 2 | drift and Pigeon setup, tasks with Apple Reminders sync, local-only fallback | ✅ |
 | 3 | Timer, notifications, session log | ✅ |
-| 4 | Scenery: built-in scenes, importing your own, video, dim and blur | Next |
-| 5 | Spotify through AppleScript (free and Premium), playlist presets, pasting a link | |
+| 4 | Scenery: built-in scenes, importing your own, video, dim and blur | ✅ |
+| 5 | Spotify through AppleScript (free and Premium), playlist presets, pasting a link | Next |
 | 6 | Calendar Today panel, scheduling a task | |
 | 7 | Notes | |
 | 8 | Onboarding, accessibility check, app icon, polish | |

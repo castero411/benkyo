@@ -616,3 +616,55 @@ class NotificationsApiSetup {
     }
   }
 }
+/// Generated protocol from Pigeon that represents a handler of messages from Flutter.
+protocol SceneryApi {
+  /// Re-encodes any image macOS can read (HEIC, TIFF…) as JPEG.
+  func convertToJpeg(inputPath: String, outputPath: String) throws
+  /// Saves a JPEG frame from early in the video, used as its thumbnail.
+  func videoPoster(inputPath: String, outputPath: String) async throws
+}
+
+/// Generated setup class from Pigeon to handle messages through the `binaryMessenger`.
+class SceneryApiSetup {
+  static var codec: FlutterStandardMessageCodec { NativeApiPigeonCodec.shared }
+  /// Sets up an instance of `SceneryApi` to handle messages through the `binaryMessenger`.
+  static func setUp(binaryMessenger: FlutterBinaryMessenger, api: SceneryApi?, messageChannelSuffix: String = "") {
+    let channelSuffix = messageChannelSuffix.count > 0 ? ".\(messageChannelSuffix)" : ""
+    /// Re-encodes any image macOS can read (HEIC, TIFF…) as JPEG.
+    let convertToJpegChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.benkyo.SceneryApi.convertToJpeg\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      convertToJpegChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let inputPathArg = args[0] as! String
+        let outputPathArg = args[1] as! String
+        do {
+          try api.convertToJpeg(inputPath: inputPathArg, outputPath: outputPathArg)
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      convertToJpegChannel.setMessageHandler(nil)
+    }
+    /// Saves a JPEG frame from early in the video, used as its thumbnail.
+    let videoPosterChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.benkyo.SceneryApi.videoPoster\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      videoPosterChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let inputPathArg = args[0] as! String
+        let outputPathArg = args[1] as! String
+        Task { @MainActor in
+          do {
+            try await api.videoPoster(inputPath: inputPathArg, outputPath: outputPathArg)
+            reply(wrapResult(nil))
+          } catch {
+            reply(wrapError(error))
+          }
+        }
+      }
+    } else {
+      videoPosterChannel.setMessageHandler(nil)
+    }
+  }
+}

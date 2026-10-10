@@ -1,11 +1,17 @@
+import 'dart:async';
+
 import 'package:benkyo/app/theme/tokens.dart';
 import 'package:benkyo/features/focus/presentation/focus_screen.dart';
 import 'package:benkyo/features/focus/presentation/focus_ui.dart';
+import 'package:benkyo/features/scenery/presentation/scenery_sheet.dart';
 import 'package:benkyo/features/tasks/presentation/tasks_providers.dart';
 import 'package:benkyo/features/timer/presentation/timer_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+/// Lets menu-bar items (which sit above MaterialApp) open dialogs.
+final rootNavigatorKey = GlobalKey<NavigatorState>();
 
 class BenkyoApp extends ConsumerWidget {
   const BenkyoApp({super.key});
@@ -103,7 +109,21 @@ class BenkyoApp extends ConsumerWidget {
               ),
               onSelected: ui.toggleToday,
             ),
-            PlatformMenuItem(label: 'Zen Mode', onSelected: ui.toggleZen),
+            // Standard "Enter Full Screen" (⌃⌘F); zen mode (F) is the same.
+            const PlatformProvidedMenuItem(
+              type: PlatformProvidedMenuItemType.toggleFullScreen,
+            ),
+            PlatformMenuItem(
+              label: 'Scenery…',
+              shortcut: const SingleActivator(
+                LogicalKeyboardKey.keyE,
+                meta: true,
+              ),
+              onSelected: () {
+                final context = rootNavigatorKey.currentContext;
+                if (context != null) toggleScenerySheet(context);
+              },
+            ),
           ],
         ),
         const PlatformMenu(
@@ -120,6 +140,7 @@ class BenkyoApp extends ConsumerWidget {
       ],
       child: MaterialApp(
         title: 'Benkyo',
+        navigatorKey: rootNavigatorKey,
         debugShowCheckedModeBanner: false,
         theme: buildTheme(),
         home: Focus(
@@ -146,7 +167,7 @@ class BenkyoApp extends ConsumerWidget {
       case LogicalKeyboardKey.space:
         timer.toggle();
       case LogicalKeyboardKey.keyF:
-        ui.toggleZen();
+        unawaited(toggleFullScreen());
       case LogicalKeyboardKey.escape:
         ui.dismiss();
       default:

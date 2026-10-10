@@ -88,3 +88,13 @@ abstract class NotificationsApi {
 
   void cancel(String id);
 }
+
+@HostApi()
+abstract class SceneryApi {
+  /// Re-encodes any image macOS can read (HEIC, TIFF…) as JPEG.
+  void convertToJpeg(String inputPath, String outputPath);
+
+  /// Saves a JPEG frame from early in the video, used as its thumbnail.
+  @async
+  void videoPoster(String inputPath, String outputPath);
+}

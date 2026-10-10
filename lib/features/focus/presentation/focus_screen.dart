@@ -1,6 +1,9 @@
 import 'package:benkyo/app/theme/tokens.dart';
 import 'package:benkyo/core/widgets/glass_panel.dart';
 import 'package:benkyo/features/focus/presentation/focus_ui.dart';
+import 'package:benkyo/features/scenery/presentation/scenery_background.dart';
+import 'package:benkyo/features/scenery/presentation/scenery_drop_target.dart';
+import 'package:benkyo/features/scenery/presentation/scenery_sheet.dart';
 import 'package:benkyo/features/tasks/presentation/tasks_panel.dart';
 import 'package:benkyo/features/timer/presentation/timer_card.dart';
 import 'package:flutter/material.dart';
@@ -19,74 +22,80 @@ class FocusScreen extends ConsumerWidget {
     final notifier = ref.read(focusUiProvider.notifier);
     final slide = Tokens.motion(context, Tokens.panel);
     final fade = Tokens.motion(context, Tokens.fast);
-    final chrome = !ui.zen;
 
     return Scaffold(
-      body: Stack(
-        children: [
-          // Scenery lands here in Phase 4.
-          const Positioned.fill(child: ColoredBox(color: Tokens.ground)),
-          const Center(child: TimerCard()),
-          _Fade(
-            visible: chrome,
-            duration: fade,
-            child: Align(
+      body: SceneryDropTarget(
+        child: Stack(
+          children: [
+            const Positioned.fill(child: SceneryBackground()),
+            const Center(child: TimerCard()),
+            Align(
               alignment: Alignment.topRight,
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(0, _titleBar, 16, 0),
-                child: IconButton(
-                  tooltip: 'Zen mode (F)',
-                  icon: const Icon(Icons.fullscreen),
-                  onPressed: notifier.toggleZen,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      tooltip: 'Scenery (⌘E)',
+                      icon: const Icon(Icons.landscape_outlined),
+                      onPressed: () => toggleScenerySheet(context),
+                    ),
+                    const IconButton(
+                      tooltip: 'Zen mode: full screen (F)',
+                      icon: Icon(Icons.fullscreen),
+                      onPressed: toggleFullScreen,
+                    ),
+                  ],
                 ),
               ),
             ),
-          ),
-          _Fade(
-            visible: chrome && !ui.tasksOpen,
-            duration: fade,
-            child: _EdgeTab(
-              side: AxisDirection.left,
-              icon: Icons.checklist,
-              label: '⌘T',
-              semantics: 'Open tasks',
-              onTap: notifier.toggleTasks,
+            _Fade(
+              visible: !ui.tasksOpen,
+              duration: fade,
+              child: _EdgeTab(
+                side: AxisDirection.left,
+                icon: Icons.checklist,
+                label: '⌘T',
+                semantics: 'Open tasks',
+                onTap: notifier.toggleTasks,
+              ),
             ),
-          ),
-          _Fade(
-            visible: chrome && !ui.todayOpen,
-            duration: fade,
-            child: _EdgeTab(
-              side: AxisDirection.right,
-              icon: Icons.calendar_today_outlined,
-              label: '⌘D',
-              semantics: 'Open today',
-              onTap: notifier.toggleToday,
+            _Fade(
+              visible: !ui.todayOpen,
+              duration: fade,
+              child: _EdgeTab(
+                side: AxisDirection.right,
+                icon: Icons.calendar_today_outlined,
+                label: '⌘D',
+                semantics: 'Open today',
+                onTap: notifier.toggleToday,
+              ),
             ),
-          ),
-          AnimatedPositioned(
-            duration: slide,
-            curve: Tokens.curve,
-            top: _titleBar + Tokens.s16,
-            bottom: Tokens.s16,
-            left: ui.tasksOpen ? Tokens.s16 : -400,
-            width: 370,
-            child: TasksPanel(onClose: notifier.toggleTasks),
-          ),
-          AnimatedPositioned(
-            duration: slide,
-            curve: Tokens.curve,
-            top: _titleBar + Tokens.s16,
-            bottom: Tokens.s16,
-            right: ui.todayOpen ? Tokens.s16 : -340,
-            width: 304,
-            child: _Panel(
-              title: 'Today',
-              empty: 'Nothing scheduled today',
-              onClose: notifier.toggleToday,
+            AnimatedPositioned(
+              duration: slide,
+              curve: Tokens.curve,
+              top: _titleBar + Tokens.s16,
+              bottom: Tokens.s16,
+              left: ui.tasksOpen ? Tokens.s16 : -400,
+              width: 370,
+              child: TasksPanel(onClose: notifier.toggleTasks),
             ),
-          ),
-        ],
+            AnimatedPositioned(
+              duration: slide,
+              curve: Tokens.curve,
+              top: _titleBar + Tokens.s16,
+              bottom: Tokens.s16,
+              right: ui.todayOpen ? Tokens.s16 : -340,
+              width: 304,
+              child: _Panel(
+                title: 'Today',
+                empty: 'Nothing scheduled today',
+                onClose: notifier.toggleToday,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
