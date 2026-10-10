@@ -2,6 +2,8 @@ import 'package:benkyo/app/app.dart';
 import 'package:benkyo/core/db/app_database.dart';
 import 'package:benkyo/core/native/native_api.g.dart';
 import 'package:benkyo/features/focus/presentation/focus_ui.dart';
+import 'package:benkyo/features/music/domain/spotify_link.dart';
+import 'package:benkyo/features/music/presentation/music_controller.dart';
 import 'package:benkyo/features/scenery/domain/scene.dart';
 import 'package:benkyo/features/scenery/presentation/scenery_providers.dart';
 import 'package:benkyo/features/tasks/presentation/tasks_providers.dart';
@@ -23,7 +25,34 @@ class _NoRemindersYet extends RemindersApi {
 /// Fake wall clock; tests move it to simulate time passing or sleep.
 var _now = DateTime(2026, 10, 10, 9);
 
-Future<void> _pumpApp(WidgetTester tester) async {
+/// Records commands; [state] is what Spotify reports.
+class _FakeSpotify extends SpotifyApi {
+  _FakeSpotify(this.state_);
+
+  SpotifyState state_;
+  final calls = <String>[];
+
+  @override
+  Future<SpotifyState> state() async => state_;
+  @override
+  Future<void> playPause() async => calls.add('playPause');
+  @override
+  Future<bool> launch() async {
+    calls.add('launch');
+    state_ = SpotifyState(
+      installed: true,
+      running: true,
+      playing: false,
+      access: SpotifyAccess.granted,
+    );
+    return true;
+  }
+
+  @override
+  Future<void> play(String uri) async => calls.add('play $uri');
+}
+
+Future<void> _pumpApp(WidgetTester tester, {SpotifyApi? spotify}) async {
   tester.view.physicalSize = const Size(1280, 800);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
@@ -39,6 +68,7 @@ Future<void> _pumpApp(WidgetTester tester) async {
         remindersApiProvider.overrideWithValue(_NoRemindersYet()),
         appDatabaseProvider.overrideWithValue(db),
         clockProvider.overrideWithValue(() => _now),
+        if (spotify != null) spotifyApiProvider.overrideWithValue(spotify),
       ],
       child: const BenkyoApp(),
     ),
@@ -223,5 +253,70 @@ void main() {
       'scene.current': nextSceneId(builtInScenes, 'builtin:golden-hour'),
       'scene.rotate': 'true',
     });
+  }, variant: macOS);
+
+  testWidgets('Spotify closed: a preset opens it, then plays', (tester) async {
+    final spotify = _FakeSpotify(
+      SpotifyState(
+        installed: true,
+        running: false,
+        playing: false,
+        access: SpotifyAccess.notAsked,
+      ),
+    );
+    tester.binding.defaultBinaryMessenger.setMockMessageHandler(
+      'dev.flutter.pigeon.benkyo.MenuApi.show',
+      (_) async => MenuApi.pigeonChannelCodec.encodeMessage([presets[0].uri]),
+    );
+    await _pumpApp(tester, spotify: spotify);
+    await tester.pumpAndSettle();
+    expect(find.text('Open Spotify'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Choose playlist'));
+    await tester.pumpAndSettle();
+    expect(spotify.calls, ['launch', 'play ${presets[0].uri}']);
+  }, variant: macOS);
+
+  testWidgets('now playing shows the track; pause goes to Spotify', (
+    tester,
+  ) async {
+    final spotify = _FakeSpotify(
+      SpotifyState(
+        installed: true,
+        running: true,
+        playing: true,
+        access: SpotifyAccess.granted,
+        title: 'Snowfall',
+        artist: 'Øneheart',
+        durationMs: 171000,
+        positionMs: 72000,
+      ),
+    );
+    await _pumpApp(tester, spotify: spotify);
+    await tester.pump();
+    expect(find.text('Snowfall'), findsOneWidget);
+    expect(find.text('1:12'), findsOneWidget);
+    expect(find.text('2:51'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Pause music'));
+    await tester.pump();
+    expect(spotify.calls, ['playPause']);
+  }, variant: macOS);
+
+  testWidgets('control denied: explains and links to Settings', (tester) async {
+    await _pumpApp(
+      tester,
+      spotify: _FakeSpotify(
+        SpotifyState(
+          installed: true,
+          running: true,
+          playing: false,
+          access: SpotifyAccess.denied,
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(find.text('Benkyo can’t control Spotify'), findsOneWidget);
+    expect(find.text('Open Settings'), findsOneWidget);
   }, variant: macOS);
 }

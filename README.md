@@ -6,7 +6,7 @@ control, and a lofi scenery background in one window, so you never have to leave
 
 Built with Flutter, with a small native Swift layer for macOS-only features.
 
-> **Status:** early development. Phases 1–4 (skeleton, tasks + Reminders sync, timer, scenery) are done. See [Roadmap](#roadmap) for
+> **Status:** early development. Phases 1–5 (skeleton, tasks + Reminders sync, timer, scenery, Spotify) are done. See [Roadmap](#roadmap) for
 > what works today and what's coming. The full product plan lives in [PLAN.md](PLAN.md).
 
 ---
@@ -40,7 +40,7 @@ Built with Flutter, with a small native Swift layer for macOS-only features.
 | **Apple Reminders sync** | Tasks live in a "Benkyo" list in Apple Reminders, so they show up on iPhone and Apple Watch. If you deny access, tasks are kept in the app only. | ✅ |
 | **Calendar** | A Today panel showing your Calendar events, plus scheduling a task as an event. | Phase 6 |
 | **Scenery** | 6 built-in lofi photos + 2 rain video loops (openly licensed, credited). Add your own photos (incl. iPhone HEIC) and videos by picker or drag & drop. Per-scene dim and blur; optional change each phase. | ✅ |
-| **Spotify** | Play, pause, skip, see the current track and choose playlists. Works with **free and Premium** accounts. | Phase 5 |
+| **Spotify** | Mini player: play/pause/skip, track + artwork + progress, 5 focus playlist presets, paste any Spotify link. Works with **Free and Premium**. | ✅ |
 | **Notes** | Markdown notes, optionally linked to a task or a focus session. | Phase 7 |
 
 ---
@@ -122,6 +122,19 @@ since a menu-bar shortcut would catch those keys even mid-sentence.
   lid mid-session and on wake it shows the right time, or moves on if the phase already ended.
 - Durations are fixed at 25 / 5 / 15 for now. They become editable with the Settings screen.
 
+### Music (Spotify)
+
+- The bar at the bottom controls the **Spotify app** (audio plays there). Works with free and
+  Premium accounts; free accounts hear Spotify's ads as usual.
+- **Choose playlist** (the list button) opens a native menu: *lofi beats*, *Deep Focus*,
+  *Peaceful Piano*, *Jazz in the Background*, *Brain Food*, or **Paste Spotify Link…** (playlist,
+  album, track or artist; a link already on your clipboard is filled in for you).
+- Picking a playlist while Spotify is closed opens it in the background and starts playing.
+- macOS asks once whether Benkyo may control Spotify, the first time you press a music control.
+  If you said no, the bar explains and opens *System Settings → Privacy & Security → Automation*.
+- The bar updates live from Spotify's own playback notifications (no polling). Track position
+  advances locally between updates.
+
 ### Scenery
 
 - Open **Scenery** with the landscape button (top right) or `⌘E`; the same button or `⌘E`
@@ -184,6 +197,11 @@ lib/
     │   └── presentation/
     │       ├── focus_screen.dart # Home screen: timer card, edge tabs, panels
     │       └── focus_ui.dart     # Panel state + full-screen channel
+    ├── music/
+    │   ├── domain/spotify_link.dart     # Presets + share-link → spotify: URI parsing
+    │   └── presentation/
+    │       ├── music_controller.dart    # State from Spotify events, commands, errors
+    │       └── mini_player.dart         # Bottom bar, playlist menu, paste-link dialog
     ├── scenery/
     │   ├── domain/scene.dart     # Scene model, built-in catalog + credits, import rules, rotation
     │   └── presentation/
@@ -213,12 +231,14 @@ macos/Runner/
 ├── MenuBridge.swift              # Native NSMenu pop-ups (MenuApi)
 ├── NotificationsBridge.swift     # Phase-end notifications (NotificationsApi)
 ├── SceneryBridge.swift           # HEIC→JPEG, video poster frames (SceneryApi)
+├── SpotifyBridge.swift           # AppleScript control + playback notifications (SpotifyApi)
 └── NativeApi.g.swift             # Pigeon-generated Swift side
 
 test/
 ├── features/tasks/task_test.dart # Priority mapping, quick-add parsing, view filters
 ├── features/timer/pomodoro_test.dart # Cycle order, pause/resume, sleep, rounding, auto-start
 ├── features/scenery/scene_test.dart  # Built-in files + credits exist, import kinds, rotation
+├── features/music/spotify_link_test.dart # Link parsing, rejects injection, presets valid
 └── widget_test.dart              # Panels, shortcuts, full screen, sheet toggle, flows
 ```
 
@@ -395,8 +415,22 @@ never break the timer.
 `videoPoster(input, output)` (AVFoundation frame at 0.5 s, saved as `<video>.jpg`, used as the
 thumbnail and shown while the video loads).
 
-Planned bridges: Calendar (EventKit) and Spotify (AppleScript plus the
-`com.spotify.client.PlaybackStateChanged` notification).
+### Spotify bridge (Pigeon)
+
+`SpotifyApi` ([`SpotifyBridge.swift`](macos/Runner/SpotifyBridge.swift)):
+
+| Method | Notes |
+|---|---|
+| `state()` | Installed / running / playing, plus track, artist, artwork URL, duration and position. Track details are read only if Automation access was **already** granted (`AEDeterminePermissionToAutomateTarget` without prompting), so launching Benkyo never shows a prompt. |
+| `playPause()`, `next()`, `previous()`, `play(uri)` | AppleScript `tell application id "com.spotify.client"`. The first one triggers the macOS prompt. `play` re-validates the URI in Swift, so nothing else can be injected into the script. |
+| `launch()` | Opens Spotify in the background (doesn't steal focus). `false` if not installed. |
+| `openDownloadPage()`, `openAutomationSettings()` | |
+| `SpotifyEvents.changed(state)` (Swift → Dart) | Sent on the `com.spotify.client.PlaybackStateChanged` distributed notification and when Spotify launches or quits. |
+
+Nothing in the bridge starts Spotify except `launch()` (a `tell` would). AppleScript runs from a
+plain main run-loop turn, the same rule as the menu bridge.
+
+Planned bridge: Calendar (EventKit).
 
 ---
 
@@ -409,9 +443,9 @@ Benkyo asks for each permission only when you first use the feature that needs i
 | Reminders (full access) | Syncing tasks with Apple Reminders | ✅ 2 |
 | Notifications | Phase-end banners and sound (asked on first Start) | ✅ 3 |
 | Calendars (full access) | The Today panel and scheduling tasks | 6 |
-| Automation → Spotify | Controlling the Spotify desktop app | 5 |
+| Automation → Spotify | Controlling the Spotify desktop app (asked on first music control) | ✅ 5 |
 | Files you choose (read-only) | Importing your own scenery images and videos | ✅ 4 |
-| Network (outgoing) | Loading album artwork | 5 |
+| Network (outgoing) | Loading album artwork | ✅ 5 |
 
 The matching entitlements and `Info.plist` descriptions are added in the phase that introduces each
 feature.
@@ -458,7 +492,9 @@ The scenery widget test picks a scene in the sheet, turns on *Change scene each 
 timer phase, and checks the scene advanced and both choices were saved. Writing it caught two
 real layout bugs (an overflowing tile and a hidden list-tile highlight).
 
-Planned tests: reading Spotify links.
+The music widget tests use a fake `SpotifyApi`: choosing a preset while Spotify is closed
+launches it then plays; the now-playing bar shows the track and sends pause; a denied permission
+shows the Settings fix. They caught a text overflow in the bar.
 
 ---
 
@@ -471,8 +507,8 @@ Planned tests: reading Spotify links.
 | 2 | drift and Pigeon setup, tasks with Apple Reminders sync, local-only fallback | ✅ |
 | 3 | Timer, notifications, session log | ✅ |
 | 4 | Scenery: built-in scenes, importing your own, video, dim and blur | ✅ |
-| 5 | Spotify through AppleScript (free and Premium), playlist presets, pasting a link | Next |
-| 6 | Calendar Today panel, scheduling a task | |
+| 5 | Spotify through AppleScript (free and Premium), playlist presets, pasting a link | ✅ |
+| 6 | Calendar Today panel, scheduling a task | Next |
 | 7 | Notes | |
 | 8 | Onboarding, accessibility check, app icon, polish | |
 

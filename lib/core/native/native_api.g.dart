@@ -113,6 +113,8 @@ int _deepHash(Object? value) {
 
 enum AccessStatus { notDetermined, granted, denied }
 
+enum SpotifyAccess { granted, notAsked, denied }
+
 /// One reminder in the app's Reminders list. `priority` is EventKit's 0–9.
 class ReminderDto {
   ReminderDto({
@@ -252,6 +254,102 @@ class NativeMenuItem {
   }
 }
 
+/// What the Spotify desktop app is doing.
+class SpotifyState {
+  SpotifyState({
+    required this.installed,
+    required this.running,
+    required this.playing,
+    required this.access,
+    this.title,
+    this.artist,
+    this.artworkUrl,
+    this.durationMs,
+    this.positionMs,
+  });
+
+  bool installed;
+
+  bool running;
+
+  bool playing;
+
+  /// Whether Benkyo may control Spotify (macOS Automation permission).
+  SpotifyAccess access;
+
+  String? title;
+
+  String? artist;
+
+  String? artworkUrl;
+
+  int? durationMs;
+
+  int? positionMs;
+
+  List<Object?> _toList() {
+    return <Object?>[
+      installed,
+      running,
+      playing,
+      access,
+      title,
+      artist,
+      artworkUrl,
+      durationMs,
+      positionMs,
+    ];
+  }
+
+  Object encode() {
+    return _toList();
+  }
+
+  static SpotifyState decode(Object result) {
+    result as List<Object?>;
+    return SpotifyState(
+      installed: result[0]! as bool,
+      running: result[1]! as bool,
+      playing: result[2]! as bool,
+      access: result[3]! as SpotifyAccess,
+      title: result[4] as String?,
+      artist: result[5] as String?,
+      artworkUrl: result[6] as String?,
+      durationMs: result[7] as int?,
+      positionMs: result[8] as int?,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! SpotifyState || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(installed, other.installed) &&
+        _deepEquals(running, other.running) &&
+        _deepEquals(playing, other.playing) &&
+        _deepEquals(access, other.access) &&
+        _deepEquals(title, other.title) &&
+        _deepEquals(artist, other.artist) &&
+        _deepEquals(artworkUrl, other.artworkUrl) &&
+        _deepEquals(durationMs, other.durationMs) &&
+        _deepEquals(positionMs, other.positionMs);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'SpotifyState(installed: $installed, running: $running, playing: $playing, access: $access, title: $title, artist: $artist, artworkUrl: $artworkUrl, durationMs: $durationMs, positionMs: $positionMs)';
+  }
+}
+
 class _PigeonCodec extends StandardMessageCodec {
   const _PigeonCodec();
   @override
@@ -262,11 +360,17 @@ class _PigeonCodec extends StandardMessageCodec {
     } else if (value is AccessStatus) {
       buffer.putUint8(129);
       writeValue(buffer, value.index);
-    } else if (value is ReminderDto) {
+    } else if (value is SpotifyAccess) {
       buffer.putUint8(130);
+      writeValue(buffer, value.index);
+    } else if (value is ReminderDto) {
+      buffer.putUint8(131);
       writeValue(buffer, value.encode());
     } else if (value is NativeMenuItem) {
-      buffer.putUint8(131);
+      buffer.putUint8(132);
+      writeValue(buffer, value.encode());
+    } else if (value is SpotifyState) {
+      buffer.putUint8(133);
       writeValue(buffer, value.encode());
     } else {
       super.writeValue(buffer, value);
@@ -280,9 +384,14 @@ class _PigeonCodec extends StandardMessageCodec {
         final value = readValue(buffer) as int?;
         return value == null ? null : AccessStatus.values[value];
       case 130:
-        return ReminderDto.decode(readValue(buffer)!);
+        final value = readValue(buffer) as int?;
+        return value == null ? null : SpotifyAccess.values[value];
       case 131:
+        return ReminderDto.decode(readValue(buffer)!);
+      case 132:
         return NativeMenuItem.decode(readValue(buffer)!);
+      case 133:
+        return SpotifyState.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
     }
@@ -646,5 +755,219 @@ class SceneryApi {
       pigeonVar_channelName,
       isNullValid: true,
     );
+  }
+}
+
+/// Controls the Spotify app with AppleScript: works for Free and Premium.
+/// Nothing here starts Spotify except [launch].
+class SpotifyApi {
+  /// Constructor for [SpotifyApi]. The [binaryMessenger] named argument is
+  /// available for dependency injection. If it is left null, the default
+  /// BinaryMessenger will be used which routes to the host platform.
+  SpotifyApi({
+    BinaryMessenger? binaryMessenger,
+    String messageChannelSuffix = '',
+  }) : pigeonVar_binaryMessenger = binaryMessenger,
+       pigeonVar_messageChannelSuffix = messageChannelSuffix.isNotEmpty
+           ? '.$messageChannelSuffix'
+           : '';
+
+  final BinaryMessenger? pigeonVar_binaryMessenger;
+  static const MessageCodec<Object?> pigeonChannelCodec = _PigeonCodec();
+
+  final String pigeonVar_messageChannelSuffix;
+
+  /// Never prompts: reads track details only if access was already granted.
+  Future<SpotifyState> state() async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.benkyo.SpotifyApi.state$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
+    return pigeonVar_replyValue! as SpotifyState;
+  }
+
+  /// The first of these asks macOS for permission to control Spotify.
+  Future<void> playPause() async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.benkyo.SpotifyApi.playPause$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: true,
+    );
+  }
+
+  Future<void> next() async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.benkyo.SpotifyApi.next$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: true,
+    );
+  }
+
+  Future<void> previous() async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.benkyo.SpotifyApi.previous$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: true,
+    );
+  }
+
+  /// Plays a `spotify:playlist:…` / `spotify:album:…` / `spotify:track:…`.
+  Future<void> play(String uri) async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.benkyo.SpotifyApi.play$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[uri],
+    );
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: true,
+    );
+  }
+
+  /// Opens Spotify in the background. False if it isn't installed.
+  Future<bool> launch() async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.benkyo.SpotifyApi.launch$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
+    return pigeonVar_replyValue! as bool;
+  }
+
+  Future<void> openDownloadPage() async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.benkyo.SpotifyApi.openDownloadPage$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: true,
+    );
+  }
+
+  Future<void> openAutomationSettings() async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.benkyo.SpotifyApi.openAutomationSettings$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: true,
+    );
+  }
+}
+
+abstract class SpotifyEvents {
+  static const MessageCodec<Object?> pigeonChannelCodec = _PigeonCodec();
+
+  /// Playback changed, Spotify launched or quit.
+  void changed(SpotifyState state);
+
+  static void setUp(
+    SpotifyEvents? api, {
+    BinaryMessenger? binaryMessenger,
+    String messageChannelSuffix = '',
+  }) {
+    messageChannelSuffix = messageChannelSuffix.isNotEmpty
+        ? '.$messageChannelSuffix'
+        : '';
+    {
+      final pigeonVar_channel = BasicMessageChannel<Object?>(
+        'dev.flutter.pigeon.benkyo.SpotifyEvents.changed$messageChannelSuffix',
+        pigeonChannelCodec,
+        binaryMessenger: binaryMessenger,
+      );
+      if (api == null) {
+        pigeonVar_channel.setMessageHandler(null);
+      } else {
+        pigeonVar_channel.setMessageHandler((Object? message) async {
+          final List<Object?> args = message! as List<Object?>;
+          final SpotifyState arg_state = args[0]! as SpotifyState;
+          try {
+            api.changed(arg_state);
+            return wrapResponse(empty: true);
+          } on PlatformException catch (e) {
+            return wrapResponse(error: e);
+          } catch (e) {
+            return wrapResponse(
+              error: PlatformException(code: 'error', message: e.toString()),
+            );
+          }
+        });
+      }
+    }
   }
 }

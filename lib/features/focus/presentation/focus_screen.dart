@@ -1,6 +1,7 @@
 import 'package:benkyo/app/theme/tokens.dart';
 import 'package:benkyo/core/widgets/glass_panel.dart';
 import 'package:benkyo/features/focus/presentation/focus_ui.dart';
+import 'package:benkyo/features/music/presentation/mini_player.dart';
 import 'package:benkyo/features/scenery/presentation/scenery_background.dart';
 import 'package:benkyo/features/scenery/presentation/scenery_drop_target.dart';
 import 'package:benkyo/features/scenery/presentation/scenery_sheet.dart';
@@ -16,6 +17,10 @@ class FocusScreen extends ConsumerWidget {
   // The native title bar strip swallows clicks; keep controls below it.
   static const _titleBar = 36.0;
 
+  // Panels end above the music bar so they never cover its controls.
+  static const double _aboveMiniPlayer =
+      Tokens.s16 + MiniPlayer.height + Tokens.s12;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final ui = ref.watch(focusUiProvider);
@@ -29,6 +34,13 @@ class FocusScreen extends ConsumerWidget {
           children: [
             const Positioned.fill(child: SceneryBackground()),
             const Center(child: TimerCard()),
+            const Align(
+              alignment: Alignment.bottomCenter,
+              child: Padding(
+                padding: EdgeInsets.only(bottom: Tokens.s16),
+                child: MiniPlayer(),
+              ),
+            ),
             Align(
               alignment: Alignment.topRight,
               child: Padding(
@@ -76,7 +88,7 @@ class FocusScreen extends ConsumerWidget {
               duration: slide,
               curve: Tokens.curve,
               top: _titleBar + Tokens.s16,
-              bottom: Tokens.s16,
+              bottom: _aboveMiniPlayer,
               left: ui.tasksOpen ? Tokens.s16 : -400,
               width: 370,
               child: TasksPanel(onClose: notifier.toggleTasks),
@@ -85,7 +97,7 @@ class FocusScreen extends ConsumerWidget {
               duration: slide,
               curve: Tokens.curve,
               top: _titleBar + Tokens.s16,
-              bottom: Tokens.s16,
+              bottom: _aboveMiniPlayer,
               right: ui.todayOpen ? Tokens.s16 : -340,
               width: 304,
               child: _Panel(

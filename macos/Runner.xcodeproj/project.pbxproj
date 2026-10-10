@@ -31,6 +31,7 @@
 		5A5915FACEB58C8272F79A31 /* RemindersBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0457039010376329E28041F7 /* RemindersBridge.swift */; };
 		78A318202AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage in Frameworks */ = {isa = PBXBuildFile; productRef = 78A3181F2AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage */; };
 		8F2B16DE66A8072534D7ECF7 /* MenuBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0A4214C4DB1ACC94B3A1D1C /* MenuBridge.swift */; };
+		C9AEA42A46D04DC15E446994 /* SpotifyBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83CD7EED152D0B890D4F76F9 /* SpotifyBridge.swift */; };
 		DA7A728E118FE102D04057AD /* NativeApi.g.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15F46807CF83AACCB66AEC97 /* NativeApi.g.swift */; };
 		EE4B045B08D7593EA6245521 /* NotificationsBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C874FD16D3A2CDA1C6E83E4 /* NotificationsBridge.swift */; };
 /* End PBXBuildFile section */
@@ -88,6 +89,7 @@
 		5C874FD16D3A2CDA1C6E83E4 /* NotificationsBridge.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotificationsBridge.swift; sourceTree = "<group>"; };
 		78E0A7A72DC9AD7400C4905E /* FlutterGeneratedPluginSwiftPackage */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = FlutterGeneratedPluginSwiftPackage; path = ephemeral/Packages/FlutterGeneratedPluginSwiftPackage; sourceTree = "<group>"; };
 		7AFA3C8E1D35360C0083082E /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
+		83CD7EED152D0B890D4F76F9 /* SpotifyBridge.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SpotifyBridge.swift; sourceTree = "<group>"; };
 		9740EEB21CF90195004384FC /* Debug.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
 		A0A4214C4DB1ACC94B3A1D1C /* MenuBridge.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MenuBridge.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -187,6 +189,7 @@
 				A0A4214C4DB1ACC94B3A1D1C /* MenuBridge.swift */,
 				5C874FD16D3A2CDA1C6E83E4 /* NotificationsBridge.swift */,
 				3519D897C96716CD960E5B03 /* SceneryBridge.swift */,
+				83CD7EED152D0B890D4F76F9 /* SpotifyBridge.swift */,
 			);
 			path = Runner;
 			sourceTree = "<group>";
@@ -377,6 +380,7 @@
 				8F2B16DE66A8072534D7ECF7 /* MenuBridge.swift in Sources */,
 				EE4B045B08D7593EA6245521 /* NotificationsBridge.swift in Sources */,
 				1B1C5B0027C4727BE591A03F /* SceneryBridge.swift in Sources */,
+				C9AEA42A46D04DC15E446994 /* SpotifyBridge.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

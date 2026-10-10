@@ -194,6 +194,12 @@ enum AccessStatus: Int, CaseIterable {
   case denied = 2
 }
 
+enum SpotifyAccess: Int, CaseIterable {
+  case granted = 0
+  case notAsked = 1
+  case denied = 2
+}
+
 /// One reminder in the app's Reminders list. `priority` is EventKit's 0–9.
 ///
 /// Generated class from Pigeon that represents data sent in messages.
@@ -314,6 +320,84 @@ struct NativeMenuItem: Hashable, CustomStringConvertible {
   }
 }
 
+/// What the Spotify desktop app is doing.
+///
+/// Generated class from Pigeon that represents data sent in messages.
+struct SpotifyState: Hashable, CustomStringConvertible {
+  var installed: Bool
+  var running: Bool
+  var playing: Bool
+  /// Whether Benkyo may control Spotify (macOS Automation permission).
+  var access: SpotifyAccess
+  var title: String? = nil
+  var artist: String? = nil
+  var artworkUrl: String? = nil
+  var durationMs: Int64? = nil
+  var positionMs: Int64? = nil
+
+
+  // swift-format-ignore: AlwaysUseLowerCamelCase
+  static func fromList(_ pigeonVar_list: [Any?]) -> SpotifyState? {
+    let installed = pigeonVar_list[0] as! Bool
+    let running = pigeonVar_list[1] as! Bool
+    let playing = pigeonVar_list[2] as! Bool
+    let access = pigeonVar_list[3] as! SpotifyAccess
+    let title: String? = nilOrValue(pigeonVar_list[4])
+    let artist: String? = nilOrValue(pigeonVar_list[5])
+    let artworkUrl: String? = nilOrValue(pigeonVar_list[6])
+    let durationMs: Int64? = nilOrValue(pigeonVar_list[7])
+    let positionMs: Int64? = nilOrValue(pigeonVar_list[8])
+
+    return SpotifyState(
+      installed: installed,
+      running: running,
+      playing: playing,
+      access: access,
+      title: title,
+      artist: artist,
+      artworkUrl: artworkUrl,
+      durationMs: durationMs,
+      positionMs: positionMs
+    )
+  }
+  func toList() -> [Any?] {
+    return [
+      installed,
+      running,
+      playing,
+      access,
+      title,
+      artist,
+      artworkUrl,
+      durationMs,
+      positionMs,
+    ]
+  }
+  static func == (lhs: SpotifyState, rhs: SpotifyState) -> Bool {
+    if Swift.type(of: lhs) != Swift.type(of: rhs) {
+      return false
+    }
+    return NativeApiPigeonInternal.deepEquals(lhs.installed, rhs.installed) && NativeApiPigeonInternal.deepEquals(lhs.running, rhs.running) && NativeApiPigeonInternal.deepEquals(lhs.playing, rhs.playing) && NativeApiPigeonInternal.deepEquals(lhs.access, rhs.access) && NativeApiPigeonInternal.deepEquals(lhs.title, rhs.title) && NativeApiPigeonInternal.deepEquals(lhs.artist, rhs.artist) && NativeApiPigeonInternal.deepEquals(lhs.artworkUrl, rhs.artworkUrl) && NativeApiPigeonInternal.deepEquals(lhs.durationMs, rhs.durationMs) && NativeApiPigeonInternal.deepEquals(lhs.positionMs, rhs.positionMs)
+  }
+
+  func hash(into hasher: inout Hasher) {
+    hasher.combine("SpotifyState")
+    NativeApiPigeonInternal.deepHash(value: installed, hasher: &hasher)
+    NativeApiPigeonInternal.deepHash(value: running, hasher: &hasher)
+    NativeApiPigeonInternal.deepHash(value: playing, hasher: &hasher)
+    NativeApiPigeonInternal.deepHash(value: access, hasher: &hasher)
+    NativeApiPigeonInternal.deepHash(value: title, hasher: &hasher)
+    NativeApiPigeonInternal.deepHash(value: artist, hasher: &hasher)
+    NativeApiPigeonInternal.deepHash(value: artworkUrl, hasher: &hasher)
+    NativeApiPigeonInternal.deepHash(value: durationMs, hasher: &hasher)
+    NativeApiPigeonInternal.deepHash(value: positionMs, hasher: &hasher)
+  }
+
+  public var description: String {
+    return "SpotifyState(installed: \(String(describing: installed)), running: \(String(describing: running)), playing: \(String(describing: playing)), access: \(String(describing: access)), title: \(String(describing: title)), artist: \(String(describing: artist)), artworkUrl: \(String(describing: artworkUrl)), durationMs: \(String(describing: durationMs)), positionMs: \(String(describing: positionMs)))"
+  }
+}
+
 private class NativeApiPigeonCodecReader: FlutterStandardReader {
   override func readValue(ofType type: UInt8) -> Any? {
     switch type {
@@ -324,9 +408,17 @@ private class NativeApiPigeonCodecReader: FlutterStandardReader {
       }
       return nil
     case 130:
-      return ReminderDto.fromList(self.readValue() as! [Any?])
+      let enumResultAsInt: Int? = nilOrValue(self.readValue() as! Int?)
+      if let enumResultAsInt = enumResultAsInt {
+        return SpotifyAccess(rawValue: enumResultAsInt)
+      }
+      return nil
     case 131:
+      return ReminderDto.fromList(self.readValue() as! [Any?])
+    case 132:
       return NativeMenuItem.fromList(self.readValue() as! [Any?])
+    case 133:
+      return SpotifyState.fromList(self.readValue() as! [Any?])
     default:
       return super.readValue(ofType: type)
     }
@@ -338,11 +430,17 @@ private class NativeApiPigeonCodecWriter: FlutterStandardWriter {
     if let value = value as? AccessStatus {
       super.writeByte(129)
       super.writeValue(value.rawValue)
-    } else if let value = value as? ReminderDto {
+    } else if let value = value as? SpotifyAccess {
       super.writeByte(130)
+      super.writeValue(value.rawValue)
+    } else if let value = value as? ReminderDto {
+      super.writeByte(131)
       super.writeValue(value.toList())
     } else if let value = value as? NativeMenuItem {
-      super.writeByte(131)
+      super.writeByte(132)
+      super.writeValue(value.toList())
+    } else if let value = value as? SpotifyState {
+      super.writeByte(133)
       super.writeValue(value.toList())
     } else {
       super.writeValue(value)
@@ -665,6 +763,193 @@ class SceneryApiSetup {
       }
     } else {
       videoPosterChannel.setMessageHandler(nil)
+    }
+  }
+}
+/// Controls the Spotify app with AppleScript: works for Free and Premium.
+/// Nothing here starts Spotify except [launch].
+///
+/// Generated protocol from Pigeon that represents a handler of messages from Flutter.
+protocol SpotifyApi {
+  /// Never prompts: reads track details only if access was already granted.
+  func state() async throws -> SpotifyState
+  /// The first of these asks macOS for permission to control Spotify.
+  func playPause() async throws
+  func next() async throws
+  func previous() async throws
+  /// Plays a `spotify:playlist:…` / `spotify:album:…` / `spotify:track:…`.
+  func play(uri: String) async throws
+  /// Opens Spotify in the background. False if it isn't installed.
+  func launch() async throws -> Bool
+  func openDownloadPage() throws
+  func openAutomationSettings() throws
+}
+
+/// Generated setup class from Pigeon to handle messages through the `binaryMessenger`.
+class SpotifyApiSetup {
+  static var codec: FlutterStandardMessageCodec { NativeApiPigeonCodec.shared }
+  /// Sets up an instance of `SpotifyApi` to handle messages through the `binaryMessenger`.
+  static func setUp(binaryMessenger: FlutterBinaryMessenger, api: SpotifyApi?, messageChannelSuffix: String = "") {
+    let channelSuffix = messageChannelSuffix.count > 0 ? ".\(messageChannelSuffix)" : ""
+    /// Never prompts: reads track details only if access was already granted.
+    let stateChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.benkyo.SpotifyApi.state\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      stateChannel.setMessageHandler { _, reply in
+        Task { @MainActor in
+          do {
+            let result = try await api.state()
+            reply(wrapResult(result))
+          } catch {
+            reply(wrapError(error))
+          }
+        }
+      }
+    } else {
+      stateChannel.setMessageHandler(nil)
+    }
+    /// The first of these asks macOS for permission to control Spotify.
+    let playPauseChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.benkyo.SpotifyApi.playPause\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      playPauseChannel.setMessageHandler { _, reply in
+        Task { @MainActor in
+          do {
+            try await api.playPause()
+            reply(wrapResult(nil))
+          } catch {
+            reply(wrapError(error))
+          }
+        }
+      }
+    } else {
+      playPauseChannel.setMessageHandler(nil)
+    }
+    let nextChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.benkyo.SpotifyApi.next\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      nextChannel.setMessageHandler { _, reply in
+        Task { @MainActor in
+          do {
+            try await api.next()
+            reply(wrapResult(nil))
+          } catch {
+            reply(wrapError(error))
+          }
+        }
+      }
+    } else {
+      nextChannel.setMessageHandler(nil)
+    }
+    let previousChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.benkyo.SpotifyApi.previous\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      previousChannel.setMessageHandler { _, reply in
+        Task { @MainActor in
+          do {
+            try await api.previous()
+            reply(wrapResult(nil))
+          } catch {
+            reply(wrapError(error))
+          }
+        }
+      }
+    } else {
+      previousChannel.setMessageHandler(nil)
+    }
+    /// Plays a `spotify:playlist:…` / `spotify:album:…` / `spotify:track:…`.
+    let playChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.benkyo.SpotifyApi.play\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      playChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let uriArg = args[0] as! String
+        Task { @MainActor in
+          do {
+            try await api.play(uri: uriArg)
+            reply(wrapResult(nil))
+          } catch {
+            reply(wrapError(error))
+          }
+        }
+      }
+    } else {
+      playChannel.setMessageHandler(nil)
+    }
+    /// Opens Spotify in the background. False if it isn't installed.
+    let launchChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.benkyo.SpotifyApi.launch\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      launchChannel.setMessageHandler { _, reply in
+        Task { @MainActor in
+          do {
+            let result = try await api.launch()
+            reply(wrapResult(result))
+          } catch {
+            reply(wrapError(error))
+          }
+        }
+      }
+    } else {
+      launchChannel.setMessageHandler(nil)
+    }
+    let openDownloadPageChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.benkyo.SpotifyApi.openDownloadPage\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      openDownloadPageChannel.setMessageHandler { _, reply in
+        do {
+          try api.openDownloadPage()
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      openDownloadPageChannel.setMessageHandler(nil)
+    }
+    let openAutomationSettingsChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.benkyo.SpotifyApi.openAutomationSettings\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      openAutomationSettingsChannel.setMessageHandler { _, reply in
+        do {
+          try api.openAutomationSettings()
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      openAutomationSettingsChannel.setMessageHandler(nil)
+    }
+  }
+}
+
+/// Generated protocol from Pigeon that represents Flutter messages that can be called from Swift.
+protocol SpotifyEventsProtocol {
+  /// Playback changed, Spotify launched or quit.
+  @MainActor func changed(state stateArg: SpotifyState) async throws
+}
+class SpotifyEvents: SpotifyEventsProtocol {
+  private let binaryMessenger: FlutterBinaryMessenger
+  private let messageChannelSuffix: String
+  init(binaryMessenger: FlutterBinaryMessenger, messageChannelSuffix: String = "") {
+    self.binaryMessenger = binaryMessenger
+    self.messageChannelSuffix = messageChannelSuffix.count > 0 ? ".\(messageChannelSuffix)" : ""
+  }
+  var codec: NativeApiPigeonCodec {
+    return NativeApiPigeonCodec.shared
+  }
+  /// Playback changed, Spotify launched or quit.
+  @MainActor func changed(state stateArg: SpotifyState) async throws {
+    return try await withCheckedThrowingContinuation { continuation in
+      let channelName: String = "dev.flutter.pigeon.benkyo.SpotifyEvents.changed\(messageChannelSuffix)"
+      let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
+      channel.sendMessage([stateArg] as [Any?]) { response in
+        guard let listResponse = response as? [Any?] else {
+          continuation.resume(throwing: createConnectionError(withChannelName: channelName))
+          return
+        }
+        if listResponse.count > 1 {
+          let code: String = listResponse[0] as! String
+          let message: String? = nilOrValue(listResponse[1])
+          let details: String? = nilOrValue(listResponse[2])
+          continuation.resume(throwing: PigeonError(code: code, message: message, details: details))
+        } else {
+          continuation.resume()
+        }
+      }
     }
   }
 }

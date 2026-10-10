@@ -32,6 +32,8 @@ class MainFlutterWindow: NSWindow {
       binaryMessenger: messenger, api: MenuBridge(view: flutterViewController.view))
     NotificationsApiSetup.setUp(binaryMessenger: messenger, api: NotificationsBridge())
     SceneryApiSetup.setUp(binaryMessenger: messenger, api: SceneryBridge())
+    SpotifyApiSetup.setUp(
+      binaryMessenger: messenger, api: SpotifyBridge(binaryMessenger: messenger))
 
     RegisterGeneratedPlugins(registry: flutterViewController)
 
