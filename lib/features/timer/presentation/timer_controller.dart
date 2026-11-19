@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:benkyo/core/db/app_database.dart';
 import 'package:benkyo/core/native/native_api.g.dart';
@@ -61,8 +62,12 @@ final timerProvider = NotifierProvider<TimerController, PomodoroState>(
 
 class TimerController extends Notifier<PomodoroState> {
   static const _notificationId = 'phase-end';
+  static const _stateKey = 'timer.state';
   Timer? _ticker;
   bool _askedPermission = false;
+
+  /// Set once the user acts, so a slow restore never overwrites them.
+  bool _touched = false;
 
   TimerSettings get _settings => ref.read(timerSettingsProvider);
   DateTime get _now => ref.read(clockProvider)();
@@ -78,7 +83,29 @@ class TimerController extends Notifier<PomodoroState> {
           state = state.reset(next);
         }
       });
+    unawaited(_restore());
     return PomodoroState.initial(_settings);
+  }
+
+  /// Brings back the timer from the last run (Android kills idle apps),
+  /// logging any phase that ended in between.
+  Future<void> _restore() async {
+    final db = ref.read(appDatabaseProvider);
+    final saved = (await db.prefsWithPrefix(_stateKey))[_stateKey];
+    if (saved == null || _touched || !ref.mounted) return;
+    final PomodoroState restored;
+    try {
+      restored = PomodoroState.fromJson(
+        jsonDecode(saved) as Map<String, Object?>,
+      );
+    } on Object {
+      return; // unreadable (older format): start fresh
+    }
+    final (now, finished) = catchUp(restored, _settings, _now);
+    for (final f in finished) {
+      await _log(f);
+    }
+    if (!_touched && ref.mounted) _set(now, touch: false);
   }
 
   void toggle() => state.running ? pause() : start();
@@ -110,11 +137,17 @@ class TimerController extends Notifier<PomodoroState> {
     if (!state.running) start();
   }
 
-  void clearTask() => state = state.withTask(null);
+  void clearTask() => _set(state.withTask(null));
 
-  /// Applies [next], then keeps the ticker and notification in step with it.
-  void _set(PomodoroState next) {
+  /// Applies [next], saves it, then keeps the ticker and notification in step.
+  void _set(PomodoroState next, {bool touch = true}) {
+    _touched |= touch;
     state = next;
+    unawaited(
+      ref
+          .read(appDatabaseProvider)
+          .setPref(_stateKey, jsonEncode(next.toJson())),
+    );
     _ticker?.cancel();
     _ticker = null;
     if (next.running) {
@@ -134,23 +167,30 @@ class TimerController extends Notifier<PomodoroState> {
     final now = _now;
     final next = state.tick(now);
     if (next.remaining == Duration.zero) {
-      unawaited(_log(next, now));
+      unawaited(
+        _log((
+          phase: next.phase,
+          taskId: next.taskId,
+          start: next.startedAt ?? now,
+          end: now,
+        )),
+      );
       _set(next.advance(_settings, now));
     } else if (next.secondsLeft != state.secondsLeft) {
       state = next;
     }
   }
 
-  Future<void> _log(PomodoroState finished, DateTime now) async {
+  Future<void> _log(FinishedPhase f) async {
     final db = ref.read(appDatabaseProvider);
     await db
         .into(db.sessions)
         .insert(
           SessionsCompanion.insert(
-            phase: finished.phase.name,
-            taskId: Value(finished.taskId),
-            startedAt: finished.startedAt ?? now,
-            endedAt: now,
+            phase: f.phase.name,
+            taskId: Value(f.taskId),
+            startedAt: f.start,
+            endedAt: f.end,
           ),
         );
   }

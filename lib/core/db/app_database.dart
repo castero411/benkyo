@@ -4,12 +4,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 part 'app_database.g.dart';
 
-/// Tasks kept on this Mac when Reminders access is off.
+/// Tasks kept on this device (always on Android; on macOS when Reminders
+/// access is off).
 class LocalTasks extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get title => text()();
   IntColumn get priority => integer()();
   DateTimeColumn get due => dateTime().nullable()();
+  BoolColumn get dueHasTime => boolean().withDefault(const Constant(false))();
+
+  /// Minutes before [due] to alert; null = no alert.
+  IntColumn get remindMinutes => integer().nullable()();
   DateTimeColumn get completedAt => dateTime().nullable()();
 }
 
@@ -54,13 +59,26 @@ class Notes extends Table {
   DateTimeColumn get updatedAt => dateTime()();
 }
 
-@DriftDatabase(tables: [LocalTasks, Sessions, UserScenes, Prefs, Notes])
+/// Notifications the user scheduled. [repeat] is a `Repeat` name;
+/// [weekdays] is "1,3,5" (Mon = 1).
+class ScheduledReminders extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get title => text()();
+  DateTimeColumn get at => dateTime()();
+  TextColumn get repeat => text()();
+  TextColumn get weekdays => text().withDefault(const Constant(''))();
+  TextColumn get taskId => text().nullable()();
+}
+
+@DriftDatabase(
+  tables: [LocalTasks, Sessions, UserScenes, Prefs, Notes, ScheduledReminders],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])
     : super(executor ?? driftDatabase(name: 'benkyo'));
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -71,6 +89,11 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(prefs);
       }
       if (from < 4) await m.createTable(notes);
+      if (from < 5) {
+        await m.addColumn(localTasks, localTasks.dueHasTime);
+        await m.addColumn(localTasks, localTasks.remindMinutes);
+        await m.createTable(scheduledReminders);
+      }
     },
   );
 }

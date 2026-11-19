@@ -51,6 +51,32 @@ class $LocalTasksTable extends LocalTasks
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _dueHasTimeMeta = const VerificationMeta(
+    'dueHasTime',
+  );
+  @override
+  late final GeneratedColumn<bool> dueHasTime = GeneratedColumn<bool>(
+    'due_has_time',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("due_has_time" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _remindMinutesMeta = const VerificationMeta(
+    'remindMinutes',
+  );
+  @override
+  late final GeneratedColumn<int> remindMinutes = GeneratedColumn<int>(
+    'remind_minutes',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _completedAtMeta = const VerificationMeta(
     'completedAt',
   );
@@ -63,7 +89,15 @@ class $LocalTasksTable extends LocalTasks
     requiredDuringInsert: false,
   );
   @override
-  List<GeneratedColumn> get $columns => [id, title, priority, due, completedAt];
+  List<GeneratedColumn> get $columns => [
+    id,
+    title,
+    priority,
+    due,
+    dueHasTime,
+    remindMinutes,
+    completedAt,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -101,6 +135,24 @@ class $LocalTasksTable extends LocalTasks
         due.isAcceptableOrUnknown(data['due']!, _dueMeta),
       );
     }
+    if (data.containsKey('due_has_time')) {
+      context.handle(
+        _dueHasTimeMeta,
+        dueHasTime.isAcceptableOrUnknown(
+          data['due_has_time']!,
+          _dueHasTimeMeta,
+        ),
+      );
+    }
+    if (data.containsKey('remind_minutes')) {
+      context.handle(
+        _remindMinutesMeta,
+        remindMinutes.isAcceptableOrUnknown(
+          data['remind_minutes']!,
+          _remindMinutesMeta,
+        ),
+      );
+    }
     if (data.containsKey('completed_at')) {
       context.handle(
         _completedAtMeta,
@@ -135,6 +187,14 @@ class $LocalTasksTable extends LocalTasks
         DriftSqlType.dateTime,
         data['${effectivePrefix}due'],
       ),
+      dueHasTime: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}due_has_time'],
+      )!,
+      remindMinutes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}remind_minutes'],
+      ),
       completedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}completed_at'],
@@ -153,12 +213,18 @@ class LocalTask extends DataClass implements Insertable<LocalTask> {
   final String title;
   final int priority;
   final DateTime? due;
+  final bool dueHasTime;
+
+  /// Minutes before [due] to alert; null = no alert.
+  final int? remindMinutes;
   final DateTime? completedAt;
   const LocalTask({
     required this.id,
     required this.title,
     required this.priority,
     this.due,
+    required this.dueHasTime,
+    this.remindMinutes,
     this.completedAt,
   });
   @override
@@ -169,6 +235,10 @@ class LocalTask extends DataClass implements Insertable<LocalTask> {
     map['priority'] = Variable<int>(priority);
     if (!nullToAbsent || due != null) {
       map['due'] = Variable<DateTime>(due);
+    }
+    map['due_has_time'] = Variable<bool>(dueHasTime);
+    if (!nullToAbsent || remindMinutes != null) {
+      map['remind_minutes'] = Variable<int>(remindMinutes);
     }
     if (!nullToAbsent || completedAt != null) {
       map['completed_at'] = Variable<DateTime>(completedAt);
@@ -182,6 +252,10 @@ class LocalTask extends DataClass implements Insertable<LocalTask> {
       title: Value(title),
       priority: Value(priority),
       due: due == null && nullToAbsent ? const Value.absent() : Value(due),
+      dueHasTime: Value(dueHasTime),
+      remindMinutes: remindMinutes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(remindMinutes),
       completedAt: completedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(completedAt),
@@ -198,6 +272,8 @@ class LocalTask extends DataClass implements Insertable<LocalTask> {
       title: serializer.fromJson<String>(json['title']),
       priority: serializer.fromJson<int>(json['priority']),
       due: serializer.fromJson<DateTime?>(json['due']),
+      dueHasTime: serializer.fromJson<bool>(json['dueHasTime']),
+      remindMinutes: serializer.fromJson<int?>(json['remindMinutes']),
       completedAt: serializer.fromJson<DateTime?>(json['completedAt']),
     );
   }
@@ -209,6 +285,8 @@ class LocalTask extends DataClass implements Insertable<LocalTask> {
       'title': serializer.toJson<String>(title),
       'priority': serializer.toJson<int>(priority),
       'due': serializer.toJson<DateTime?>(due),
+      'dueHasTime': serializer.toJson<bool>(dueHasTime),
+      'remindMinutes': serializer.toJson<int?>(remindMinutes),
       'completedAt': serializer.toJson<DateTime?>(completedAt),
     };
   }
@@ -218,12 +296,18 @@ class LocalTask extends DataClass implements Insertable<LocalTask> {
     String? title,
     int? priority,
     Value<DateTime?> due = const Value.absent(),
+    bool? dueHasTime,
+    Value<int?> remindMinutes = const Value.absent(),
     Value<DateTime?> completedAt = const Value.absent(),
   }) => LocalTask(
     id: id ?? this.id,
     title: title ?? this.title,
     priority: priority ?? this.priority,
     due: due.present ? due.value : this.due,
+    dueHasTime: dueHasTime ?? this.dueHasTime,
+    remindMinutes: remindMinutes.present
+        ? remindMinutes.value
+        : this.remindMinutes,
     completedAt: completedAt.present ? completedAt.value : this.completedAt,
   );
   LocalTask copyWithCompanion(LocalTasksCompanion data) {
@@ -232,6 +316,12 @@ class LocalTask extends DataClass implements Insertable<LocalTask> {
       title: data.title.present ? data.title.value : this.title,
       priority: data.priority.present ? data.priority.value : this.priority,
       due: data.due.present ? data.due.value : this.due,
+      dueHasTime: data.dueHasTime.present
+          ? data.dueHasTime.value
+          : this.dueHasTime,
+      remindMinutes: data.remindMinutes.present
+          ? data.remindMinutes.value
+          : this.remindMinutes,
       completedAt: data.completedAt.present
           ? data.completedAt.value
           : this.completedAt,
@@ -245,13 +335,23 @@ class LocalTask extends DataClass implements Insertable<LocalTask> {
           ..write('title: $title, ')
           ..write('priority: $priority, ')
           ..write('due: $due, ')
+          ..write('dueHasTime: $dueHasTime, ')
+          ..write('remindMinutes: $remindMinutes, ')
           ..write('completedAt: $completedAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, title, priority, due, completedAt);
+  int get hashCode => Object.hash(
+    id,
+    title,
+    priority,
+    due,
+    dueHasTime,
+    remindMinutes,
+    completedAt,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -260,6 +360,8 @@ class LocalTask extends DataClass implements Insertable<LocalTask> {
           other.title == this.title &&
           other.priority == this.priority &&
           other.due == this.due &&
+          other.dueHasTime == this.dueHasTime &&
+          other.remindMinutes == this.remindMinutes &&
           other.completedAt == this.completedAt);
 }
 
@@ -268,12 +370,16 @@ class LocalTasksCompanion extends UpdateCompanion<LocalTask> {
   final Value<String> title;
   final Value<int> priority;
   final Value<DateTime?> due;
+  final Value<bool> dueHasTime;
+  final Value<int?> remindMinutes;
   final Value<DateTime?> completedAt;
   const LocalTasksCompanion({
     this.id = const Value.absent(),
     this.title = const Value.absent(),
     this.priority = const Value.absent(),
     this.due = const Value.absent(),
+    this.dueHasTime = const Value.absent(),
+    this.remindMinutes = const Value.absent(),
     this.completedAt = const Value.absent(),
   });
   LocalTasksCompanion.insert({
@@ -281,6 +387,8 @@ class LocalTasksCompanion extends UpdateCompanion<LocalTask> {
     required String title,
     required int priority,
     this.due = const Value.absent(),
+    this.dueHasTime = const Value.absent(),
+    this.remindMinutes = const Value.absent(),
     this.completedAt = const Value.absent(),
   }) : title = Value(title),
        priority = Value(priority);
@@ -289,6 +397,8 @@ class LocalTasksCompanion extends UpdateCompanion<LocalTask> {
     Expression<String>? title,
     Expression<int>? priority,
     Expression<DateTime>? due,
+    Expression<bool>? dueHasTime,
+    Expression<int>? remindMinutes,
     Expression<DateTime>? completedAt,
   }) {
     return RawValuesInsertable({
@@ -296,6 +406,8 @@ class LocalTasksCompanion extends UpdateCompanion<LocalTask> {
       if (title != null) 'title': title,
       if (priority != null) 'priority': priority,
       if (due != null) 'due': due,
+      if (dueHasTime != null) 'due_has_time': dueHasTime,
+      if (remindMinutes != null) 'remind_minutes': remindMinutes,
       if (completedAt != null) 'completed_at': completedAt,
     });
   }
@@ -305,6 +417,8 @@ class LocalTasksCompanion extends UpdateCompanion<LocalTask> {
     Value<String>? title,
     Value<int>? priority,
     Value<DateTime?>? due,
+    Value<bool>? dueHasTime,
+    Value<int?>? remindMinutes,
     Value<DateTime?>? completedAt,
   }) {
     return LocalTasksCompanion(
@@ -312,6 +426,8 @@ class LocalTasksCompanion extends UpdateCompanion<LocalTask> {
       title: title ?? this.title,
       priority: priority ?? this.priority,
       due: due ?? this.due,
+      dueHasTime: dueHasTime ?? this.dueHasTime,
+      remindMinutes: remindMinutes ?? this.remindMinutes,
       completedAt: completedAt ?? this.completedAt,
     );
   }
@@ -331,6 +447,12 @@ class LocalTasksCompanion extends UpdateCompanion<LocalTask> {
     if (due.present) {
       map['due'] = Variable<DateTime>(due.value);
     }
+    if (dueHasTime.present) {
+      map['due_has_time'] = Variable<bool>(dueHasTime.value);
+    }
+    if (remindMinutes.present) {
+      map['remind_minutes'] = Variable<int>(remindMinutes.value);
+    }
     if (completedAt.present) {
       map['completed_at'] = Variable<DateTime>(completedAt.value);
     }
@@ -344,6 +466,8 @@ class LocalTasksCompanion extends UpdateCompanion<LocalTask> {
           ..write('title: $title, ')
           ..write('priority: $priority, ')
           ..write('due: $due, ')
+          ..write('dueHasTime: $dueHasTime, ')
+          ..write('remindMinutes: $remindMinutes, ')
           ..write('completedAt: $completedAt')
           ..write(')'))
         .toString();
@@ -1602,6 +1726,394 @@ class NotesCompanion extends UpdateCompanion<Note> {
   }
 }
 
+class $ScheduledRemindersTable extends ScheduledReminders
+    with TableInfo<$ScheduledRemindersTable, ScheduledReminder> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ScheduledRemindersTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _atMeta = const VerificationMeta('at');
+  @override
+  late final GeneratedColumn<DateTime> at = GeneratedColumn<DateTime>(
+    'at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _repeatMeta = const VerificationMeta('repeat');
+  @override
+  late final GeneratedColumn<String> repeat = GeneratedColumn<String>(
+    'repeat',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _weekdaysMeta = const VerificationMeta(
+    'weekdays',
+  );
+  @override
+  late final GeneratedColumn<String> weekdays = GeneratedColumn<String>(
+    'weekdays',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _taskIdMeta = const VerificationMeta('taskId');
+  @override
+  late final GeneratedColumn<String> taskId = GeneratedColumn<String>(
+    'task_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    title,
+    at,
+    repeat,
+    weekdays,
+    taskId,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'scheduled_reminders';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ScheduledReminder> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('at')) {
+      context.handle(_atMeta, at.isAcceptableOrUnknown(data['at']!, _atMeta));
+    } else if (isInserting) {
+      context.missing(_atMeta);
+    }
+    if (data.containsKey('repeat')) {
+      context.handle(
+        _repeatMeta,
+        repeat.isAcceptableOrUnknown(data['repeat']!, _repeatMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_repeatMeta);
+    }
+    if (data.containsKey('weekdays')) {
+      context.handle(
+        _weekdaysMeta,
+        weekdays.isAcceptableOrUnknown(data['weekdays']!, _weekdaysMeta),
+      );
+    }
+    if (data.containsKey('task_id')) {
+      context.handle(
+        _taskIdMeta,
+        taskId.isAcceptableOrUnknown(data['task_id']!, _taskIdMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ScheduledReminder map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ScheduledReminder(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      at: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}at'],
+      )!,
+      repeat: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}repeat'],
+      )!,
+      weekdays: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}weekdays'],
+      )!,
+      taskId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}task_id'],
+      ),
+    );
+  }
+
+  @override
+  $ScheduledRemindersTable createAlias(String alias) {
+    return $ScheduledRemindersTable(attachedDatabase, alias);
+  }
+}
+
+class ScheduledReminder extends DataClass
+    implements Insertable<ScheduledReminder> {
+  final int id;
+  final String title;
+  final DateTime at;
+  final String repeat;
+  final String weekdays;
+  final String? taskId;
+  const ScheduledReminder({
+    required this.id,
+    required this.title,
+    required this.at,
+    required this.repeat,
+    required this.weekdays,
+    this.taskId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['title'] = Variable<String>(title);
+    map['at'] = Variable<DateTime>(at);
+    map['repeat'] = Variable<String>(repeat);
+    map['weekdays'] = Variable<String>(weekdays);
+    if (!nullToAbsent || taskId != null) {
+      map['task_id'] = Variable<String>(taskId);
+    }
+    return map;
+  }
+
+  ScheduledRemindersCompanion toCompanion(bool nullToAbsent) {
+    return ScheduledRemindersCompanion(
+      id: Value(id),
+      title: Value(title),
+      at: Value(at),
+      repeat: Value(repeat),
+      weekdays: Value(weekdays),
+      taskId: taskId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(taskId),
+    );
+  }
+
+  factory ScheduledReminder.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ScheduledReminder(
+      id: serializer.fromJson<int>(json['id']),
+      title: serializer.fromJson<String>(json['title']),
+      at: serializer.fromJson<DateTime>(json['at']),
+      repeat: serializer.fromJson<String>(json['repeat']),
+      weekdays: serializer.fromJson<String>(json['weekdays']),
+      taskId: serializer.fromJson<String?>(json['taskId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'title': serializer.toJson<String>(title),
+      'at': serializer.toJson<DateTime>(at),
+      'repeat': serializer.toJson<String>(repeat),
+      'weekdays': serializer.toJson<String>(weekdays),
+      'taskId': serializer.toJson<String?>(taskId),
+    };
+  }
+
+  ScheduledReminder copyWith({
+    int? id,
+    String? title,
+    DateTime? at,
+    String? repeat,
+    String? weekdays,
+    Value<String?> taskId = const Value.absent(),
+  }) => ScheduledReminder(
+    id: id ?? this.id,
+    title: title ?? this.title,
+    at: at ?? this.at,
+    repeat: repeat ?? this.repeat,
+    weekdays: weekdays ?? this.weekdays,
+    taskId: taskId.present ? taskId.value : this.taskId,
+  );
+  ScheduledReminder copyWithCompanion(ScheduledRemindersCompanion data) {
+    return ScheduledReminder(
+      id: data.id.present ? data.id.value : this.id,
+      title: data.title.present ? data.title.value : this.title,
+      at: data.at.present ? data.at.value : this.at,
+      repeat: data.repeat.present ? data.repeat.value : this.repeat,
+      weekdays: data.weekdays.present ? data.weekdays.value : this.weekdays,
+      taskId: data.taskId.present ? data.taskId.value : this.taskId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ScheduledReminder(')
+          ..write('id: $id, ')
+          ..write('title: $title, ')
+          ..write('at: $at, ')
+          ..write('repeat: $repeat, ')
+          ..write('weekdays: $weekdays, ')
+          ..write('taskId: $taskId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, title, at, repeat, weekdays, taskId);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ScheduledReminder &&
+          other.id == this.id &&
+          other.title == this.title &&
+          other.at == this.at &&
+          other.repeat == this.repeat &&
+          other.weekdays == this.weekdays &&
+          other.taskId == this.taskId);
+}
+
+class ScheduledRemindersCompanion extends UpdateCompanion<ScheduledReminder> {
+  final Value<int> id;
+  final Value<String> title;
+  final Value<DateTime> at;
+  final Value<String> repeat;
+  final Value<String> weekdays;
+  final Value<String?> taskId;
+  const ScheduledRemindersCompanion({
+    this.id = const Value.absent(),
+    this.title = const Value.absent(),
+    this.at = const Value.absent(),
+    this.repeat = const Value.absent(),
+    this.weekdays = const Value.absent(),
+    this.taskId = const Value.absent(),
+  });
+  ScheduledRemindersCompanion.insert({
+    this.id = const Value.absent(),
+    required String title,
+    required DateTime at,
+    required String repeat,
+    this.weekdays = const Value.absent(),
+    this.taskId = const Value.absent(),
+  }) : title = Value(title),
+       at = Value(at),
+       repeat = Value(repeat);
+  static Insertable<ScheduledReminder> custom({
+    Expression<int>? id,
+    Expression<String>? title,
+    Expression<DateTime>? at,
+    Expression<String>? repeat,
+    Expression<String>? weekdays,
+    Expression<String>? taskId,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (title != null) 'title': title,
+      if (at != null) 'at': at,
+      if (repeat != null) 'repeat': repeat,
+      if (weekdays != null) 'weekdays': weekdays,
+      if (taskId != null) 'task_id': taskId,
+    });
+  }
+
+  ScheduledRemindersCompanion copyWith({
+    Value<int>? id,
+    Value<String>? title,
+    Value<DateTime>? at,
+    Value<String>? repeat,
+    Value<String>? weekdays,
+    Value<String?>? taskId,
+  }) {
+    return ScheduledRemindersCompanion(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      at: at ?? this.at,
+      repeat: repeat ?? this.repeat,
+      weekdays: weekdays ?? this.weekdays,
+      taskId: taskId ?? this.taskId,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (at.present) {
+      map['at'] = Variable<DateTime>(at.value);
+    }
+    if (repeat.present) {
+      map['repeat'] = Variable<String>(repeat.value);
+    }
+    if (weekdays.present) {
+      map['weekdays'] = Variable<String>(weekdays.value);
+    }
+    if (taskId.present) {
+      map['task_id'] = Variable<String>(taskId.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ScheduledRemindersCompanion(')
+          ..write('id: $id, ')
+          ..write('title: $title, ')
+          ..write('at: $at, ')
+          ..write('repeat: $repeat, ')
+          ..write('weekdays: $weekdays, ')
+          ..write('taskId: $taskId')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -1610,6 +2122,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $UserScenesTable userScenes = $UserScenesTable(this);
   late final $PrefsTable prefs = $PrefsTable(this);
   late final $NotesTable notes = $NotesTable(this);
+  late final $ScheduledRemindersTable scheduledReminders =
+      $ScheduledRemindersTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1620,6 +2134,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     userScenes,
     prefs,
     notes,
+    scheduledReminders,
   ];
 }
 
@@ -1628,6 +2143,8 @@ typedef $$LocalTasksTableCreateCompanionBuilder = LocalTasksCompanion Function({
   required String title,
   required int priority,
   Value<DateTime?> due,
+  Value<bool> dueHasTime,
+  Value<int?> remindMinutes,
   Value<DateTime?> completedAt,
 });
 typedef $$LocalTasksTableUpdateCompanionBuilder = LocalTasksCompanion Function({
@@ -1635,6 +2152,8 @@ typedef $$LocalTasksTableUpdateCompanionBuilder = LocalTasksCompanion Function({
   Value<String> title,
   Value<int> priority,
   Value<DateTime?> due,
+  Value<bool> dueHasTime,
+  Value<int?> remindMinutes,
   Value<DateTime?> completedAt,
 });
 
@@ -1664,6 +2183,16 @@ class $$LocalTasksTableFilterComposer
 
   ColumnFilters<DateTime> get due => $composableBuilder(
     column: $table.due,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get dueHasTime => $composableBuilder(
+    column: $table.dueHasTime,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get remindMinutes => $composableBuilder(
+    column: $table.remindMinutes,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -1702,6 +2231,16 @@ class $$LocalTasksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get dueHasTime => $composableBuilder(
+    column: $table.dueHasTime,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get remindMinutes => $composableBuilder(
+    column: $table.remindMinutes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get completedAt => $composableBuilder(
     column: $table.completedAt,
     builder: (column) => ColumnOrderings(column),
@@ -1728,6 +2267,16 @@ class $$LocalTasksTableAnnotationComposer
 
   GeneratedColumn<DateTime> get due =>
       $composableBuilder(column: $table.due, builder: (column) => column);
+
+  GeneratedColumn<bool> get dueHasTime => $composableBuilder(
+    column: $table.dueHasTime,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get remindMinutes => $composableBuilder(
+    column: $table.remindMinutes,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<DateTime> get completedAt => $composableBuilder(
     column: $table.completedAt,
@@ -1770,12 +2319,16 @@ class $$LocalTasksTableTableManager
                 Value<String> title = const Value.absent(),
                 Value<int> priority = const Value.absent(),
                 Value<DateTime?> due = const Value.absent(),
+                Value<bool> dueHasTime = const Value.absent(),
+                Value<int?> remindMinutes = const Value.absent(),
                 Value<DateTime?> completedAt = const Value.absent(),
               }) => LocalTasksCompanion(
                 id: id,
                 title: title,
                 priority: priority,
                 due: due,
+                dueHasTime: dueHasTime,
+                remindMinutes: remindMinutes,
                 completedAt: completedAt,
               ),
           createCompanionCallback:
@@ -1784,12 +2337,16 @@ class $$LocalTasksTableTableManager
                 required String title,
                 required int priority,
                 Value<DateTime?> due = const Value.absent(),
+                Value<bool> dueHasTime = const Value.absent(),
+                Value<int?> remindMinutes = const Value.absent(),
                 Value<DateTime?> completedAt = const Value.absent(),
               }) => LocalTasksCompanion.insert(
                 id: id,
                 title: title,
                 priority: priority,
                 due: due,
+                dueHasTime: dueHasTime,
+                remindMinutes: remindMinutes,
                 completedAt: completedAt,
               ),
           withReferenceMapper: (p0) => p0
@@ -2549,6 +3106,243 @@ typedef $$NotesTableProcessedTableManager =
       Note,
       PrefetchHooks Function()
     >;
+typedef $$ScheduledRemindersTableCreateCompanionBuilder =
+    ScheduledRemindersCompanion Function({
+      Value<int> id,
+      required String title,
+      required DateTime at,
+      required String repeat,
+      Value<String> weekdays,
+      Value<String?> taskId,
+    });
+typedef $$ScheduledRemindersTableUpdateCompanionBuilder =
+    ScheduledRemindersCompanion Function({
+      Value<int> id,
+      Value<String> title,
+      Value<DateTime> at,
+      Value<String> repeat,
+      Value<String> weekdays,
+      Value<String?> taskId,
+    });
+
+class $$ScheduledRemindersTableFilterComposer
+    extends Composer<_$AppDatabase, $ScheduledRemindersTable> {
+  $$ScheduledRemindersTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get at => $composableBuilder(
+    column: $table.at,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get repeat => $composableBuilder(
+    column: $table.repeat,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get weekdays => $composableBuilder(
+    column: $table.weekdays,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get taskId => $composableBuilder(
+    column: $table.taskId,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ScheduledRemindersTableOrderingComposer
+    extends Composer<_$AppDatabase, $ScheduledRemindersTable> {
+  $$ScheduledRemindersTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get at => $composableBuilder(
+    column: $table.at,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get repeat => $composableBuilder(
+    column: $table.repeat,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get weekdays => $composableBuilder(
+    column: $table.weekdays,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get taskId => $composableBuilder(
+    column: $table.taskId,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ScheduledRemindersTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ScheduledRemindersTable> {
+  $$ScheduledRemindersTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get at =>
+      $composableBuilder(column: $table.at, builder: (column) => column);
+
+  GeneratedColumn<String> get repeat =>
+      $composableBuilder(column: $table.repeat, builder: (column) => column);
+
+  GeneratedColumn<String> get weekdays =>
+      $composableBuilder(column: $table.weekdays, builder: (column) => column);
+
+  GeneratedColumn<String> get taskId =>
+      $composableBuilder(column: $table.taskId, builder: (column) => column);
+}
+
+class $$ScheduledRemindersTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ScheduledRemindersTable,
+          ScheduledReminder,
+          $$ScheduledRemindersTableFilterComposer,
+          $$ScheduledRemindersTableOrderingComposer,
+          $$ScheduledRemindersTableAnnotationComposer,
+          $$ScheduledRemindersTableCreateCompanionBuilder,
+          $$ScheduledRemindersTableUpdateCompanionBuilder,
+          (
+            ScheduledReminder,
+            BaseReferences<
+              _$AppDatabase,
+              $ScheduledRemindersTable,
+              ScheduledReminder
+            >,
+          ),
+          ScheduledReminder,
+          PrefetchHooks Function()
+        > {
+  $$ScheduledRemindersTableTableManager(
+    _$AppDatabase db,
+    $ScheduledRemindersTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ScheduledRemindersTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ScheduledRemindersTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ScheduledRemindersTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<DateTime> at = const Value.absent(),
+                Value<String> repeat = const Value.absent(),
+                Value<String> weekdays = const Value.absent(),
+                Value<String?> taskId = const Value.absent(),
+              }) => ScheduledRemindersCompanion(
+                id: id,
+                title: title,
+                at: at,
+                repeat: repeat,
+                weekdays: weekdays,
+                taskId: taskId,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String title,
+                required DateTime at,
+                required String repeat,
+                Value<String> weekdays = const Value.absent(),
+                Value<String?> taskId = const Value.absent(),
+              }) => ScheduledRemindersCompanion.insert(
+                id: id,
+                title: title,
+                at: at,
+                repeat: repeat,
+                weekdays: weekdays,
+                taskId: taskId,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$ScheduledRemindersTable, ScheduledReminder>(
+                    table,
+                  ),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $ScheduledRemindersTable,
+                    ScheduledReminder
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ScheduledRemindersTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ScheduledRemindersTable,
+      ScheduledReminder,
+      $$ScheduledRemindersTableFilterComposer,
+      $$ScheduledRemindersTableOrderingComposer,
+      $$ScheduledRemindersTableAnnotationComposer,
+      $$ScheduledRemindersTableCreateCompanionBuilder,
+      $$ScheduledRemindersTableUpdateCompanionBuilder,
+      (
+        ScheduledReminder,
+        BaseReferences<
+          _$AppDatabase,
+          $ScheduledRemindersTable,
+          ScheduledReminder
+        >,
+      ),
+      ScheduledReminder,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -2563,4 +3357,6 @@ class $AppDatabaseManager {
       $$PrefsTableTableManager(_db, _db.prefs);
   $$NotesTableTableManager get notes =>
       $$NotesTableTableManager(_db, _db.notes);
+  $$ScheduledRemindersTableTableManager get scheduledReminders =>
+      $$ScheduledRemindersTableTableManager(_db, _db.scheduledReminders);
 }

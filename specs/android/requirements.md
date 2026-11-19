@@ -109,7 +109,7 @@ back and the app returns to portrait with the bars back.
 | R5.2 | THE user SHALL be able to pick a lead time for each task: at due time (default), 5, 15 or 30 minutes before, or 1 hour before. |
 | R5.3 | WHEN a task is completed, deleted or its due time changes, THE app SHALL cancel or reschedule its notification. |
 | R5.4 | WHEN the user taps a task notification, THE app SHALL open with that task shown. |
-| R5.5 | A task notification SHALL have a **"Start focus"** action that starts the timer on that task without opening the full UI first. |
+| R5.5 | A task notification SHALL have a **"Start focus"** action that opens the app with the timer already started on that task. *(Changed in design §4.5: actions open the app instead of running in a background isolate.)* |
 | R5.6 | A task due with a date only (no time) SHALL get no notification by default. |
 
 ## R6 Scheduled notifications

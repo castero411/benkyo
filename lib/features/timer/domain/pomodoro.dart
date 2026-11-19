@@ -57,6 +57,30 @@ class PomodoroState {
   PomodoroState.initial(TimerSettings s)
     : this(phase: Phase.focus, remaining: s.focus);
 
+  factory PomodoroState.fromJson(Map<String, Object?> j) {
+    DateTime? at(String key) => switch (j[key]) {
+      final int ms => DateTime.fromMillisecondsSinceEpoch(ms),
+      _ => null,
+    };
+    return PomodoroState(
+      phase: Phase.values.byName(j['phase']! as String),
+      remaining: Duration(milliseconds: j['remainingMs']! as int),
+      endsAt: at('endsAt'),
+      startedAt: at('startedAt'),
+      completedFocus: j['completedFocus']! as int,
+      taskId: j['taskId'] as String?,
+    );
+  }
+
+  Map<String, Object?> toJson() => {
+    'phase': phase.name,
+    'remainingMs': remaining.inMilliseconds,
+    'endsAt': endsAt?.millisecondsSinceEpoch,
+    'startedAt': startedAt?.millisecondsSinceEpoch,
+    'completedFocus': completedFocus,
+    'taskId': taskId,
+  };
+
   final Phase phase;
   final Duration remaining;
   final DateTime? endsAt;
@@ -135,6 +159,37 @@ class PomodoroState {
   }
 
   PomodoroState withTask(String? id) => _copy(taskId: () => id);
+}
+
+/// A phase that ran to its end, ready for the session log.
+typedef FinishedPhase = ({
+  Phase phase,
+  String? taskId,
+  DateTime start,
+  DateTime end,
+});
+
+/// Advances past every phase that ended while the app wasn't running (killed
+/// or suspended), as of each phase's own end time. Returns the state for [now]
+/// and the phases to log. With auto-start off this stops after one phase.
+(PomodoroState, List<FinishedPhase>) catchUp(
+  PomodoroState state,
+  TimerSettings settings,
+  DateTime now,
+) {
+  final done = <FinishedPhase>[];
+  var s = state;
+  while (s.running && !s.endsAt!.isAfter(now)) {
+    final end = s.endsAt!;
+    done.add((
+      phase: s.phase,
+      taskId: s.taskId,
+      start: s.startedAt ?? end.subtract(settings.of(s.phase)),
+      end: end,
+    ));
+    s = s.tick(end).advance(settings, end);
+  }
+  return (s.tick(now), done);
 }
 
 /// "24:13"

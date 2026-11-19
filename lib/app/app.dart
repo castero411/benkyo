@@ -9,6 +9,7 @@ import 'package:benkyo/features/scenery/presentation/scenery_sheet.dart';
 import 'package:benkyo/features/settings/presentation/settings_sheet.dart';
 import 'package:benkyo/features/tasks/presentation/tasks_providers.dart';
 import 'package:benkyo/features/timer/presentation/timer_controller.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -24,6 +25,21 @@ class BenkyoApp extends ConsumerWidget {
     final ui = ref.read(focusUiProvider.notifier);
     final timer = ref.read(timerProvider.notifier);
     final running = ref.watch(timerProvider.select((s) => s.running));
+
+    final app = MaterialApp(
+      title: 'Benkyo',
+      navigatorKey: rootNavigatorKey,
+      debugShowCheckedModeBanner: false,
+      theme: buildTheme(),
+      home: Focus(
+        autofocus: true,
+        onKeyEvent: (_, event) => _onKey(event, ui, timer),
+        child: const FocusScreen(),
+      ),
+    );
+    // The native menu bar (and its provided items) only exists on macOS;
+    // elsewhere it throws.
+    if (defaultTargetPlatform != TargetPlatform.macOS) return app;
 
     // ⌘ shortcuts live in the native menu bar so they are discoverable.
     // Bare keys (F, Esc) are handled in-app so they never fire while typing.
@@ -184,17 +200,7 @@ class BenkyoApp extends ConsumerWidget {
           ],
         ),
       ],
-      child: MaterialApp(
-        title: 'Benkyo',
-        navigatorKey: rootNavigatorKey,
-        debugShowCheckedModeBanner: false,
-        theme: buildTheme(),
-        home: Focus(
-          autofocus: true,
-          onKeyEvent: (_, event) => _onKey(event, ui, timer),
-          child: const FocusScreen(),
-        ),
-      ),
+      child: app,
     );
   }
 

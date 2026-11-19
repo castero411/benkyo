@@ -25,9 +25,11 @@ the same change.
 | `SCHEDULE_EXACT_ALARM` | Exact delivery (R6.4) | User grants it in system settings, so **no Play declaration needed**. Do **not** use `USE_EXACT_ALARM`: Play restricts it to alarm-clock and calendar apps and requires a declaration. |
 | `RECEIVE_BOOT_COMPLETED` | Reschedule after reboot (R6.5) | |
 | *(none)* photo picker | Custom backgrounds (R3.3) | The system photo picker needs no permission. Never add `READ_MEDIA_*`. |
-| *(none)* keep screen on | Clock mode (R2.5) | Window flag, no `WAKE_LOCK` needed. |
+| *(none)* keep screen on | Clock mode (R2.5) | `FLAG_KEEP_SCREEN_ON` via the window channel; our code never uses `WAKE_LOCK`. |
+| `VIBRATE` | Merged from `flutter_local_notifications` | Normal permission, no prompt, no data. |
+| `WAKE_LOCK`, `ACCESS_NETWORK_STATE` | Merged from `video_player` (ExoPlayer/media3) | Normal permissions, no prompt. Kept because stripping them can break playback. They read nothing off the device, and ExoPlayer makes no network calls for local files. |
 | `INTERNET` | — | **Do not add.** Flutter adds it to debug builds only; check the release manifest. |
-| `<queries>` for Spotify | Check that Spotify is installed (R7.4) | Package visibility, not a permission. Disclosed in policy §5. |
+| *(none)* Spotify check | Fall back to Play Store (R7.4) | Design §4.11: catch `ActivityNotFoundException`, so no `<queries>` element is needed. |
 
 ## Decisions
 

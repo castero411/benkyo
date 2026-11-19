@@ -75,6 +75,8 @@ class LocalTaskSource implements TaskSource {
       title: Value(task.title),
       priority: Value(task.priority),
       due: Value(task.due),
+      dueHasTime: Value(task.dueHasTime),
+      remindMinutes: Value(task.remindMinutes),
       completedAt: Value(task.completedAt),
     );
     if (task.id == null) {
@@ -99,6 +101,8 @@ class LocalTaskSource implements TaskSource {
     title: row.title,
     priority: row.priority,
     due: row.due,
+    dueHasTime: row.dueHasTime,
+    remindMinutes: row.remindMinutes,
     completedAt: row.completedAt,
   );
 }

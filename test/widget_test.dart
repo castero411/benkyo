@@ -114,6 +114,12 @@ Future<void> _pumpApp(
 void main() {
   final macOS = TargetPlatformVariant.only(TargetPlatform.macOS);
 
+  testWidgets('Android builds without the macOS menu bar', (tester) async {
+    await _pumpApp(tester);
+    expect(tester.takeException(), isNull);
+    expect(find.byType(PlatformMenuBar), findsNothing);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+
   testWidgets('edge tab opens Tasks, Esc closes, F toggles full screen', (
     tester,
   ) async {

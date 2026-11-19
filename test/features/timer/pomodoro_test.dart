@@ -58,4 +58,53 @@ void main() {
     expect(next.phase, Phase.shortBreak);
     expect(next.endsAt, t0.add(auto.shortBreak));
   });
+
+  group('catchUp (app was killed while running)', () {
+    test('not ended yet: unchanged, nothing finished', () {
+      final state = PomodoroState.initial(s).start(t0);
+      final (next, done) = catchUp(
+        state,
+        s,
+        t0.add(const Duration(minutes: 1)),
+      );
+      expect(next.endsAt, state.endsAt);
+      expect(done, isEmpty);
+    });
+
+    test('one phase ended: logged at its end, next phase stopped', () {
+      final state = PomodoroState.initial(s).start(t0).withTask('7');
+      final (next, done) = catchUp(state, s, t0.add(const Duration(hours: 2)));
+      expect(done, hasLength(1));
+      expect(done.single.phase, Phase.focus);
+      expect(done.single.taskId, '7');
+      expect(done.single.start, t0);
+      expect(done.single.end, t0.add(s.focus));
+      expect(next.phase, Phase.shortBreak);
+      expect(next.running, isFalse);
+      expect(next.completedFocus, 1);
+    });
+
+    test('auto-start: every phase that fit in the gap is logged', () {
+      const auto = TimerSettings(autoStartNext: true);
+      final state = PomodoroState.initial(auto).start(t0);
+      // 25 focus + 5 break + 25 focus = 55 min, then 3 min into a break.
+      final now = t0.add(const Duration(minutes: 58));
+      final (next, done) = catchUp(state, auto, now);
+      expect(done.map((d) => d.phase), [
+        Phase.focus,
+        Phase.shortBreak,
+        Phase.focus,
+      ]);
+      expect(done[1].start, t0.add(auto.focus));
+      expect(next.phase, Phase.shortBreak);
+      expect(next.running, isTrue);
+      expect(next.tick(now).secondsLeft, 2 * 60);
+    });
+
+    test('paused: never catches up', () {
+      final state = PomodoroState.initial(s).start(t0).pause(t0);
+      final (_, done) = catchUp(state, s, t0.add(const Duration(days: 1)));
+      expect(done, isEmpty);
+    });
+  });
 }

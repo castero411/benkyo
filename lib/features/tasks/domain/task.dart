@@ -5,6 +5,8 @@ class Task {
     this.id,
     this.priority = 4,
     this.due,
+    this.dueHasTime = false,
+    this.remindMinutes,
     this.completedAt,
     this.notes,
   });
@@ -14,6 +16,12 @@ class Task {
   final String title;
   final int priority;
   final DateTime? due;
+
+  /// False when only the day matters (no alert is scheduled then).
+  final bool dueHasTime;
+
+  /// Alert this many minutes before [due]; null = no alert.
+  final int? remindMinutes;
   final DateTime? completedAt;
 
   /// Kept so edits never wipe notes written in Reminders.
@@ -25,12 +33,16 @@ class Task {
     String? title,
     int? priority,
     DateTime? Function()? due,
+    bool? dueHasTime,
+    int? Function()? remindMinutes,
     DateTime? Function()? completedAt,
   }) => Task(
     id: id,
     title: title ?? this.title,
     priority: priority ?? this.priority,
     due: due == null ? this.due : due(),
+    dueHasTime: dueHasTime ?? this.dueHasTime,
+    remindMinutes: remindMinutes == null ? this.remindMinutes : remindMinutes(),
     completedAt: completedAt == null ? this.completedAt : completedAt(),
     notes: notes,
   );
